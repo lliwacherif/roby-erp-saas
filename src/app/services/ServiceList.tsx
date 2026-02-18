@@ -19,6 +19,9 @@ type ServiceItem = {
     article_id: string
     qty: number
     unit_price: number
+    rental_deposit?: number | null
+    rental_start?: string | null
+    rental_end?: string | null
     article_name?: string
 }
 
@@ -147,7 +150,7 @@ export default function ServiceList() {
         // Fetch service items with article names
         const { data: items } = await supabase
             .from('service_items')
-            .select('id, article_id, qty, unit_price, articles(nom)')
+            .select('id, article_id, qty, unit_price, rental_deposit, rental_start, rental_end, articles(nom)')
             .eq('service_id', service.id)
 
         const mapped: ServiceItem[] = ((items || []) as any[]).map(i => ({
@@ -155,12 +158,17 @@ export default function ServiceList() {
             article_id: i.article_id,
             qty: i.qty,
             unit_price: i.unit_price,
+            rental_deposit: i.rental_deposit ?? null,
+            rental_start: i.rental_start ?? null,
+            rental_end: i.rental_end ?? null,
             article_name: i.articles?.nom || '—'
         }))
 
         setDetailItems(mapped)
         setDetailLoading(false)
     }
+
+    const detailDepositTotal = detailItems.reduce((acc, item) => acc + (Number(item.rental_deposit) || 0), 0)
 
     const statusColor = (status: string) => {
         switch (status) {
@@ -303,10 +311,12 @@ export default function ServiceList() {
                                         </p>
                                     </div>
                                 </div>
-                                {detailService.rental_deposit != null && detailService.rental_deposit > 0 && (
+                                {(detailDepositTotal > 0 || (detailService.rental_deposit != null && detailService.rental_deposit > 0)) && (
                                     <div className="flex items-center justify-between pt-2 border-t border-blue-200">
                                         <span className="text-xs text-blue-500">{t('deposit')}</span>
-                                        <span className="text-sm font-bold text-blue-800">{fmt(detailService.rental_deposit)} DT</span>
+                                        <span className="text-sm font-bold text-blue-800">
+                                            {fmt(detailDepositTotal > 0 ? detailDepositTotal : (detailService.rental_deposit ?? 0))} DT
+                                        </span>
                                     </div>
                                 )}
                             </div>
@@ -332,6 +342,13 @@ export default function ServiceList() {
                                                 <th className="text-left px-4 py-2 font-medium text-slate-500">{t('articles')}</th>
                                                 <th className="text-center px-4 py-2 font-medium text-slate-500">{t('qty')}</th>
                                                 <th className="text-right px-4 py-2 font-medium text-slate-500">{t('unitPrice')}</th>
+                                                {detailService.type === 'location' && (
+                                                    <>
+                                                        <th className="text-right px-4 py-2 font-medium text-slate-500">{t('deposit')}</th>
+                                                        <th className="text-center px-4 py-2 font-medium text-slate-500">{t('from')}</th>
+                                                        <th className="text-center px-4 py-2 font-medium text-slate-500">{t('to')}</th>
+                                                    </>
+                                                )}
                                                 <th className="text-right px-4 py-2 font-medium text-slate-500">{t('total')}</th>
                                             </tr>
                                         </thead>
@@ -341,13 +358,24 @@ export default function ServiceList() {
                                                     <td className="px-4 py-2.5 font-medium text-slate-700">{item.article_name}</td>
                                                     <td className="px-4 py-2.5 text-center text-slate-600">{item.qty}</td>
                                                     <td className="px-4 py-2.5 text-right text-slate-600">{fmt(item.unit_price)} DT</td>
+                                                    {detailService.type === 'location' && (
+                                                        <>
+                                                            <td className="px-4 py-2.5 text-right text-slate-600">{fmt(Number(item.rental_deposit) || 0)} DT</td>
+                                                            <td className="px-4 py-2.5 text-center text-slate-600">
+                                                                {item.rental_start ? new Date(item.rental_start).toLocaleDateString() : '—'}
+                                                            </td>
+                                                            <td className="px-4 py-2.5 text-center text-slate-600">
+                                                                {item.rental_end ? new Date(item.rental_end).toLocaleDateString() : '—'}
+                                                            </td>
+                                                        </>
+                                                    )}
                                                     <td className="px-4 py-2.5 text-right font-semibold text-slate-900">{fmt(item.qty * item.unit_price)} DT</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                         <tfoot className="bg-slate-50">
                                             <tr>
-                                                <td colSpan={3} className="px-4 py-2.5 text-right font-semibold text-slate-700">{t('total')}</td>
+                                                <td colSpan={detailService.type === 'location' ? 6 : 3} className="px-4 py-2.5 text-right font-semibold text-slate-700">{t('total')}</td>
                                                 <td className="px-4 py-2.5 text-right font-bold text-slate-900">{fmt(detailService.total)} DT</td>
                                             </tr>
                                         </tfoot>

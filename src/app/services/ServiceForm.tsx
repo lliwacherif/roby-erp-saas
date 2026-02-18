@@ -15,14 +15,14 @@ const itemSchema = z.object({
     article_id: z.string().min(1, "Article is required"),
     qty: z.coerce.number().min(1, "Qty must be >= 1"),
     unit_price: z.coerce.number().min(0, "Price must be >= 0"),
+    rental_deposit: z.coerce.number().min(0).optional(),
+    rental_start: z.string().optional(),
+    rental_end: z.string().optional(),
 })
 
 const schema = z.object({
     type: z.enum(['vente', 'location']),
     client_id: z.string().min(1, "Client is required"),
-    rental_start: z.string().optional(),
-    rental_end: z.string().optional(),
-    rental_deposit: z.coerce.number().optional(),
     items: z.array(itemSchema).min(1, "At least one item is required")
 })
 
@@ -36,7 +36,7 @@ export default function ServiceForm() {
         resolver: zodResolver(schema) as any,
         defaultValues: {
             type: 'vente',
-            items: [{ article_id: '', qty: 1, unit_price: 0 }]
+            items: [{ article_id: '', qty: 1, unit_price: 0, rental_deposit: 0, rental_start: '', rental_end: '' }]
         }
     })
 
@@ -55,7 +55,7 @@ export default function ServiceForm() {
     const type = watch('type')
     const watchedItems = watch('items')
     const total = watchedItems?.reduce((acc, item) => acc + (item.qty || 0) * (item.unit_price || 0), 0) || 0
-    const deposit = watch('rental_deposit') || 0
+    const totalDeposit = watchedItems?.reduce((acc, item) => acc + (Number(item.rental_deposit) || 0), 0) || 0
 
     useEffect(() => {
         if (currentTenant) fetchArticles()
@@ -103,19 +103,36 @@ export default function ServiceForm() {
                     if (item.unit_price < min || item.unit_price > max) {
                         throw new Error(`${article.nom}: ${t('locationPriceRangeError')} [${min} - ${max}]`)
                     }
+                    if (!item.rental_start || !item.rental_end) {
+                        throw new Error(`${article.nom}: ${t('rentalPeriod')} (${t('from')} / ${t('to')}) is required.`)
+                    }
+                    if (item.rental_end < item.rental_start) {
+                        throw new Error(`${article.nom}: ${t('to')} must be after ${t('from')}.`)
+                    }
                 }
             }
 
             const computedTotal = data.items.reduce((acc, item) => acc + (item.qty || 0) * (item.unit_price || 0), 0)
+            const computedDeposit = data.type === 'location'
+                ? data.items.reduce((acc, item) => acc + (Number(item.rental_deposit) || 0), 0)
+                : 0
+            const locationStarts = data.type === 'location'
+                ? data.items.map(i => i.rental_start).filter(Boolean) as string[]
+                : []
+            const locationEnds = data.type === 'location'
+                ? data.items.map(i => i.rental_end).filter(Boolean) as string[]
+                : []
+            const serviceRentalStart = locationStarts.length ? locationStarts.sort()[0] : null
+            const serviceRentalEnd = locationEnds.length ? locationEnds.sort().slice(-1)[0] : null
 
             const { data: service, error: serviceError } = await supabase.from('services').insert({
                 tenant_id: currentTenant.id,
                 client_id: data.client_id,
                 type: data.type,
                 status: 'confirmed',
-                rental_start: data.rental_start || null,
-                rental_end: data.rental_end || null,
-                rental_deposit: data.rental_deposit || 0,
+                rental_start: serviceRentalStart,
+                rental_end: serviceRentalEnd,
+                rental_deposit: computedDeposit,
                 total: computedTotal
             }).select().single()
 
@@ -128,7 +145,10 @@ export default function ServiceForm() {
                 service_id: svc.id,
                 article_id: item.article_id,
                 qty: item.qty,
-                unit_price: item.unit_price
+                unit_price: item.unit_price,
+                rental_deposit: data.type === 'location' ? (Number(item.rental_deposit) || 0) : null,
+                rental_start: data.type === 'location' ? (item.rental_start || null) : null,
+                rental_end: data.type === 'location' ? (item.rental_end || null) : null,
             }))
             const { error: itemsError } = await supabase.from('service_items').insert(itemsToInsert)
             if (itemsError) throw itemsError
@@ -246,9 +266,12 @@ export default function ServiceForm() {
                         </div>
                         <div className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <Input type="date" label={t('rentalStart')} {...register('rental_start')} />
-                                <Input type="date" label={t('rentalEnd')} {...register('rental_end')} />
-                                <Input type="number" label={`${t('deposit')} (DT)`} {...register('rental_deposit')} placeholder="0" />
+                                <div className="md:col-span-2 text-sm text-slate-500 self-center">
+                                    Periode de location definie par article dans chaque ligne ci-dessous.
+                                </div>
+                                <div className="rounded-lg border border-dashed border-violet-200 bg-violet-50/50 px-3 py-2 text-sm text-violet-700">
+                                    {t('deposit')}: {totalDeposit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DT
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -270,7 +293,7 @@ export default function ServiceForm() {
                             <Button
                                 type="button"
                                 size="sm"
-                                onClick={() => append({ article_id: '', qty: 1, unit_price: 0 })}
+                                onClick={() => append({ article_id: '', qty: 1, unit_price: 0, rental_deposit: 0, rental_start: '', rental_end: '' })}
                             >
                                 <Plus className="h-4 w-4" />
                                 {t('add')}
@@ -356,6 +379,28 @@ export default function ServiceForm() {
                                             <Trash className="h-4 w-4" />
                                         </button>
                                     </div>
+
+                                    {type === 'location' && (
+                                        <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-200/70">
+                                            <Input
+                                                type="date"
+                                                label={`${t('from')} (Article)`}
+                                                {...register(`items.${index}.rental_start`)}
+                                            />
+                                            <Input
+                                                type="date"
+                                                label={`${t('to')} (Article)`}
+                                                {...register(`items.${index}.rental_end`)}
+                                            />
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                step="0.01"
+                                                label={`${t('deposit')} (Article)`}
+                                                {...register(`items.${index}.rental_deposit`)}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )
                         })}
@@ -384,10 +429,10 @@ export default function ServiceForm() {
                                         <p className="text-xs text-slate-400 uppercase tracking-wider">{t('serviceItems')}</p>
                                         <p className="text-2xl font-bold text-slate-900">{total.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} <span className="text-base font-medium text-slate-400">DT</span></p>
                                     </div>
-                                    {type === 'location' && deposit > 0 && (
+                                    {type === 'location' && totalDeposit > 0 && (
                                         <div>
                                             <p className="text-xs text-slate-400 uppercase tracking-wider">{t('deposit')}</p>
-                                            <p className="text-lg font-semibold text-violet-600">{Number(deposit).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} <span className="text-sm font-medium text-violet-400">DT</span></p>
+                                            <p className="text-lg font-semibold text-violet-600">{Number(totalDeposit).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} <span className="text-sm font-medium text-violet-400">DT</span></p>
                                         </div>
                                     )}
                                 </div>

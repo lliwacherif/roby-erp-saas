@@ -391,6 +391,9 @@ export type Database = {
           article_id: string
           qty: number
           unit_price: number
+          rental_deposit: number | null
+          rental_start: string | null
+          rental_end: string | null
           created_at: string
         }
         Insert: {
@@ -400,6 +403,9 @@ export type Database = {
           article_id: string
           qty: number
           unit_price: number
+          rental_deposit?: number | null
+          rental_start?: string | null
+          rental_end?: string | null
           created_at?: string
         }
         Update: {
@@ -409,6 +415,9 @@ export type Database = {
           article_id?: string
           qty?: number
           unit_price?: number
+          rental_deposit?: number | null
+          rental_start?: string | null
+          rental_end?: string | null
           created_at?: string
         }
         Relationships: [

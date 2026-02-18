@@ -11,6 +11,9 @@ type ServiceItem = {
   qty: number
   unit_price: number
   article_name: string
+  rental_deposit: number | null
+  rental_start: string | null
+  rental_end: string | null
 }
 
 type ServiceData = {
@@ -100,7 +103,7 @@ export default function ServiceInvoiceBuilder() {
 
     const { data: itemRows } = await supabase
       .from('service_items')
-      .select('id, qty, unit_price, articles(nom)')
+      .select('id, qty, unit_price, rental_deposit, rental_start, rental_end, articles(nom)')
       .eq('service_id', serviceData.id)
 
     const mappedItems: ServiceItem[] = ((itemRows || []) as any[]).map((r) => ({
@@ -108,6 +111,9 @@ export default function ServiceInvoiceBuilder() {
       qty: r.qty,
       unit_price: r.unit_price,
       article_name: r.articles?.nom || '-',
+      rental_deposit: r.rental_deposit ?? null,
+      rental_start: r.rental_start ?? null,
+      rental_end: r.rental_end ?? null,
     }))
 
     const { data: profileData } = await supabase
@@ -157,6 +163,10 @@ export default function ServiceInvoiceBuilder() {
 
   const subtotal = useMemo(
     () => items.reduce((acc, item) => acc + item.qty * item.unit_price, 0),
+    [items]
+  )
+  const totalDeposit = useMemo(
+    () => items.reduce((acc, item) => acc + (Number(item.rental_deposit) || 0), 0),
     [items]
   )
   // Mode behavior requested:
@@ -316,6 +326,7 @@ export default function ServiceInvoiceBuilder() {
             <p>Statut: {service.status.toUpperCase()}</p>
             <p>Du: {service.rental_start ? new Date(service.rental_start).toLocaleDateString('fr-FR') : '-'}</p>
             <p>Au: {service.rental_end ? new Date(service.rental_end).toLocaleDateString('fr-FR') : '-'}</p>
+            {service.type === 'location' && <p>Caution: {fmt(totalDeposit > 0 ? totalDeposit : (service.rental_deposit || 0))} DT</p>}
             <p>Mode prix: {priceMode}</p>
             <p>TVA: 19%</p>
           </div>
@@ -326,6 +337,13 @@ export default function ServiceInvoiceBuilder() {
                 <tr>
                   <th className="text-left px-4 py-2 font-medium text-slate-500">Article</th>
                   <th className="text-center px-4 py-2 font-medium text-slate-500">Qte</th>
+                  {service.type === 'location' && (
+                    <>
+                      <th className="text-right px-4 py-2 font-medium text-slate-500">Caution</th>
+                      <th className="text-center px-4 py-2 font-medium text-slate-500">Du</th>
+                      <th className="text-center px-4 py-2 font-medium text-slate-500">Au</th>
+                    </>
+                  )}
                   <th className="text-right px-4 py-2 font-medium text-slate-500">
                     Prix Unitaire {priceMode}
                   </th>
@@ -337,6 +355,17 @@ export default function ServiceInvoiceBuilder() {
                   <tr key={item.id}>
                     <td className="px-4 py-2.5">{item.article_name}</td>
                     <td className="px-4 py-2.5 text-center">{item.qty}</td>
+                    {service.type === 'location' && (
+                      <>
+                        <td className="px-4 py-2.5 text-right">{fmt(Number(item.rental_deposit) || 0)} DT</td>
+                        <td className="px-4 py-2.5 text-center">
+                          {item.rental_start ? new Date(item.rental_start).toLocaleDateString('fr-FR') : '-'}
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          {item.rental_end ? new Date(item.rental_end).toLocaleDateString('fr-FR') : '-'}
+                        </td>
+                      </>
+                    )}
                     <td className="px-4 py-2.5 text-right">{fmt(displayUnitPrice(item.unit_price))} DT</td>
                     <td className="px-4 py-2.5 text-right font-semibold">{fmt(displayLineTotal(item.qty, item.unit_price))} DT</td>
                   </tr>
@@ -344,15 +373,23 @@ export default function ServiceInvoiceBuilder() {
               </tbody>
               <tfoot className="bg-slate-50">
                 <tr>
-                  <td colSpan={3} className="px-4 py-2.5 text-right font-semibold text-slate-700">Sous-total HT</td>
+                  <td colSpan={service.type === 'location' ? 6 : 3} className="px-4 py-2.5 text-right font-semibold text-slate-700">Sous-total HT</td>
                   <td className="px-4 py-2.5 text-right font-semibold text-slate-900">{fmt(subtotalHT)} DT</td>
                 </tr>
+                {service.type === 'location' && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-2.5 text-right font-semibold text-slate-700">Caution</td>
+                    <td className="px-4 py-2.5 text-right font-semibold text-slate-900">
+                      {fmt(totalDeposit > 0 ? totalDeposit : (service.rental_deposit || 0))} DT
+                    </td>
+                  </tr>
+                )}
                 <tr>
-                  <td colSpan={3} className="px-4 py-2.5 text-right font-semibold text-slate-700">TVA (19%)</td>
+                  <td colSpan={service.type === 'location' ? 6 : 3} className="px-4 py-2.5 text-right font-semibold text-slate-700">TVA (19%)</td>
                   <td className="px-4 py-2.5 text-right font-semibold text-slate-900">{fmt(tvaAmount)} DT</td>
                 </tr>
                 <tr>
-                  <td colSpan={3} className="px-4 py-2.5 text-right font-bold text-slate-900">Total TTC</td>
+                  <td colSpan={service.type === 'location' ? 6 : 3} className="px-4 py-2.5 text-right font-bold text-slate-900">Total TTC</td>
                   <td className="px-4 py-2.5 text-right font-bold text-slate-900">{fmt(subtotalTTC)} DT</td>
                 </tr>
               </tfoot>

@@ -96,10 +96,16 @@ export default function KpiPage() {
             .select('amount, type')
             .eq('tenant_id', tid)
 
+        let salaryPaymentsQuery = supabase
+            .from('salary_payments')
+            .select('amount, paid_at')
+            .eq('tenant_id', tid)
+
         // Apply date filter unless "all time"
         if (period !== 'all') {
             servicesQuery = servicesQuery.gte('created_at', from)
             depensesQuery = depensesQuery.gte('spent_at', from)
+            salaryPaymentsQuery = salaryPaymentsQuery.gte('paid_at', from)
         }
 
         const safeQuery = async (fn: () => PromiseLike<any>, fallback: any) => {
@@ -109,12 +115,14 @@ export default function KpiPage() {
         const [
             servicesRes,
             depensesRes,
+            salaryPaymentsRes,
             stockRes,
             clientsRes,
             ouvriersRes
         ] = await Promise.all([
             safeQuery(() => servicesQuery, { data: [], count: 0 }),
             safeQuery(() => depensesQuery, { data: [] }),
+            safeQuery(() => salaryPaymentsQuery, { data: [] }),
             safeQuery(() => supabase.from('v_stock_overview').select('*').eq('tenant_id', tid), { data: [] }),
             safeQuery(() => supabase.from('clients').select('id', { count: 'exact', head: true }).eq('tenant_id', tid), { data: [], count: 0 }),
             safeQuery(() => supabase.from('ouvriers').select('salaire_base').eq('tenant_id', tid), { data: [] })
@@ -122,13 +130,16 @@ export default function KpiPage() {
 
         const services = (servicesRes.data || []) as any[]
         const depenses = (depensesRes.data || []) as any[]
+        const salaryPayments = (salaryPaymentsRes.data || []) as any[]
         const stock = (stockRes.data || []) as any[]
         const ouvriers = (ouvriersRes.data || []) as any[]
 
         const earningsVente = services.filter(s => s.type === 'vente').reduce((s, r) => s + (r.total || 0), 0)
         const earningsLocation = services.filter(s => s.type === 'location').reduce((s, r) => s + (r.total || 0), 0)
         const totalEarnings = earningsVente + earningsLocation
-        const totalExpenses = depenses.reduce((s, r) => s + (r.amount || 0), 0)
+        const depensesTotal = depenses.reduce((s, r) => s + (r.amount || 0), 0)
+        const salaryPaymentsTotal = salaryPayments.reduce((s, r) => s + (r.amount || 0), 0)
+        const totalExpenses = depensesTotal + salaryPaymentsTotal
 
         const totalStockValue = stock.reduce((s, r) => s + (r.prix_achat || 0) * (r.qte_on_hand || 0), 0)
         const lowStockItems = stock.filter((s: any) => s.qte_on_hand <= 5).sort((a: any, b: any) => a.qte_on_hand - b.qte_on_hand).slice(0, 5)
