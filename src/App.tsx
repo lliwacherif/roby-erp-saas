@@ -7,6 +7,7 @@ import { RequireAuth } from '@/components/auth/RequireAuth'
 import AppLayout from '@/components/layout/AppLayout'
 import RootLayout from '@/components/layout/RootLayout'
 import ArticlePage from '@/app/articles/ArticlePage'
+import ArticleHistoryPage from '@/app/articles/ArticleHistoryPage'
 import StockPage from '@/app/stock/StockPage'
 import ServicePage from '@/app/services/ServicePage'
 import DepensePage from '@/app/depenses/DepensePage'
@@ -44,6 +45,7 @@ function App() {
               }>
                 <Route path="kpi" element={<KpiPage />} />
                 <Route path="articles" element={<ArticlePage />} />
+                <Route path="articles/history" element={<ArticleHistoryPage />} />
                 <Route path="stock" element={<StockPage />} />
                 <Route path="services/*" element={<ServicePage />} />
                 <Route path="clients" element={<ClientList />} />

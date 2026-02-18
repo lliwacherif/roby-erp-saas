@@ -11,6 +11,7 @@ import { ArticleForm } from './ArticleForm'
 import { ArrowLeftRight, Trash2, Pencil } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
 import { useI18n } from '@/lib/i18n'
+import { useNavigate } from 'react-router-dom'
 
 type Article = Database['public']['Tables']['articles']['Row'] & {
     famille_name?: string
@@ -18,6 +19,7 @@ type Article = Database['public']['Tables']['articles']['Row'] & {
 }
 
 export default function ArticlesTab() {
+    const navigate = useNavigate()
     const [articles, setArticles] = useState<Article[]>([])
     const [loading, setLoading] = useState(true)
     const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -191,7 +193,10 @@ export default function ArticlesTab() {
                         {categories.filter(c => c.famille_id === filterFamille).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                 </div>
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                    <Button variant="secondary" onClick={() => navigate('/app/articles/history')}>
+                        Historique Articles
+                    </Button>
                     <Button onClick={() => setIsCreateOpen(true)}>{t('newArticle')}</Button>
                 </div>
             </div>
