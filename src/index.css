@@ -1,0 +1,103 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    /* Premium Blue palette */
+    --primary: 222 89% 55%;
+    --primary-light: 222 89% 65%;
+    --primary-dark: 222 89% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Slate neutral palette */
+    --background: 220 14% 96%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    /* Sidebar dark */
+    --sidebar-bg: 222 47% 11%;
+    --sidebar-fg: 215 20% 65%;
+    --sidebar-active: 222 89% 55%;
+    --sidebar-active-fg: 0 0% 100%;
+    --sidebar-hover: 222 30% 18%;
+
+    /* Surface */
+    --surface: 0 0% 100%;
+    --surface-hover: 220 14% 96%;
+
+    /* Borders */
+    --border: 220 13% 91%;
+    --border-light: 220 13% 95%;
+    --input: 220 13% 91%;
+    --input-focus: 222 89% 55%;
+
+    /* Status */
+    --success: 142 71% 45%;
+    --success-light: 142 76% 95%;
+    --warning: 38 92% 50%;
+    --warning-light: 38 92% 95%;
+    --danger: 0 84% 60%;
+    --danger-light: 0 93% 95%;
+    --info: 199 89% 48%;
+    --info-light: 199 89% 95%;
+
+    /* Misc */
+    --ring: 222 89% 55%;
+    --radius: 0.75rem;
+    --radius-sm: 0.5rem;
+    --radius-lg: 1rem;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+    line-height: 1.6;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(220 13% 80%);
+  }
+}
+
+/* Smooth transitions for interactive elements */
+@layer utilities {
+  .transition-smooth {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
