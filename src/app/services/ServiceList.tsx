@@ -26,6 +26,17 @@ type ServiceItem = {
     article_name?: string
 }
 
+type ReturnCandidate = {
+    id: string
+    article_id: string
+    qty: number
+    article_name: string
+    rental_start: string | null
+    rental_end: string | null
+    canReturn: boolean
+    stateLabel?: string
+}
+
 export default function ServiceList() {
     const [services, setServices] = useState<Service[]>([])
     const [loading, setLoading] = useState(true)
@@ -43,6 +54,10 @@ export default function ServiceList() {
     const [detailService, setDetailService] = useState<Service | null>(null)
     const [detailItems, setDetailItems] = useState<ServiceItem[]>([])
     const [detailLoading, setDetailLoading] = useState(false)
+    const [returnModalOpen, setReturnModalOpen] = useState(false)
+    const [returnCandidates, setReturnCandidates] = useState<ReturnCandidate[]>([])
+    const [returnServiceId, setReturnServiceId] = useState<string | null>(null)
+    const [selectedReturnItemId, setSelectedReturnItemId] = useState<string>('')
 
     useEffect(() => {
         if (currentTenant) {
@@ -90,17 +105,24 @@ export default function ServiceList() {
         for (const svc of expired) await performReturn(svc.id, true)
     }
 
-    // ── Shared return logic ──
-    const performReturn = async (serviceId: string, silent = false) => {
-        if (!currentTenant) return
+    const getReturnableItems = async (serviceId: string): Promise<ReturnCandidate[]> => {
+        if (!currentTenant) return []
 
         // 1. Get items
         const { data: rawItems } = await supabase
             .from('service_items')
-            .select('id, article_id, qty')
+            .select('id, article_id, qty, rental_start, rental_end, articles(nom)')
             .eq('service_id', serviceId)
-        const items = rawItems as Array<{ id: string; article_id: string; qty: number }>
-        if (!items || items.length === 0) return
+        const items = ((rawItems || []) as any[]).map((i) => ({
+            id: i.id as string,
+            article_id: i.article_id as string,
+            qty: i.qty as number,
+            article_name: i.articles?.nom || '—',
+            rental_start: i.rental_start ?? null,
+            rental_end: i.rental_end ?? null,
+            canReturn: true,
+        }))
+        if (!items || items.length === 0) return []
 
         const itemIds = items.map((i) => i.id)
         const { data: newStartMovements } = await supabase
@@ -147,8 +169,24 @@ export default function ServiceList() {
             ? items
             : items.filter((item) => startedIds.has(item.id) && !returnedIds.has(item.id))
 
-        if (itemsToReturn.length === 0) {
+        return itemsToReturn
+    }
+
+    // ── Shared return logic ──
+    const performReturn = async (serviceId: string, silent = false, itemIds?: string[]) => {
+        if (!currentTenant) return
+
+        const returnable = await getReturnableItems(serviceId)
+        if (returnable.length === 0) {
             if (!silent) alert('No started rental items to return yet.')
+            return
+        }
+
+        const itemsToReturn = itemIds?.length
+            ? returnable.filter((item) => itemIds.includes(item.id))
+            : returnable
+        if (itemsToReturn.length === 0) {
+            if (!silent) alert('Please select a product to return.')
             return
         }
 
@@ -168,16 +206,64 @@ export default function ServiceList() {
             return
         }
 
-        // 3. Update status
-        const { error: updateError } = await supabase.from('services').update({ status: 'returned' }).eq('id', serviceId)
-        if (updateError && !silent) {
-            alert('Error updating status: ' + updateError.message)
+        // 3. If all started items are returned, mark service as returned
+        const remainingAfterReturn = await getReturnableItems(serviceId)
+        if (remainingAfterReturn.length === 0) {
+            const { error: updateError } = await supabase.from('services').update({ status: 'returned' }).eq('id', serviceId)
+            if (updateError && !silent) {
+                alert('Error updating status: ' + updateError.message)
+            }
         }
     }
 
     const handleReturn = async (serviceId: string) => {
-        if (!confirm('Mark as returned and restock started items?')) return
-        await performReturn(serviceId)
+        if (!currentTenant) return
+        const { data: rawAllItems } = await supabase
+            .from('service_items')
+            .select('id, article_id, qty, rental_start, rental_end, articles(nom)')
+            .eq('service_id', serviceId)
+        const allItems = ((rawAllItems || []) as any[]).map((i) => ({
+            id: i.id as string,
+            article_id: i.article_id as string,
+            qty: i.qty as number,
+            article_name: i.articles?.nom || '—',
+            rental_start: i.rental_start ?? null,
+            rental_end: i.rental_end ?? null,
+        }))
+
+        const candidates = await getReturnableItems(serviceId)
+        if (candidates.length === 0) {
+            alert('No started rental items to return yet.')
+            return
+        }
+
+        if (allItems.length <= 1 && candidates.length === 1) {
+            if (!confirm('Mark this product as returned and restock it?')) return
+            await performReturn(serviceId, false, [candidates[0].id])
+            fetchServices()
+            return
+        }
+
+        const returnableIds = new Set(candidates.map((c) => c.id))
+        const modalItems: ReturnCandidate[] = allItems.map((item) => ({
+            ...item,
+            canReturn: returnableIds.has(item.id),
+            stateLabel: returnableIds.has(item.id) ? 'Retournable' : 'Pas encore retournable',
+        }))
+
+        setReturnServiceId(serviceId)
+        setReturnCandidates(modalItems)
+        setSelectedReturnItemId(modalItems.find((i) => i.canReturn)?.id || '')
+        setReturnModalOpen(true)
+    }
+
+    const confirmReturnSelection = async () => {
+        if (!returnServiceId || !selectedReturnItemId) return
+        await performReturn(returnServiceId, false, [selectedReturnItemId])
+        setReturnModalOpen(false)
+        setReturnCandidates([])
+        setSelectedReturnItemId('')
+        setReturnServiceId(null)
         fetchServices()
     }
 
@@ -473,6 +559,76 @@ export default function ServiceList() {
                         <Button onClick={handleDelete} disabled={deleting}
                             className="!bg-red-600 hover:!bg-red-700 !shadow-none">
                             {deleting ? t('loading') : t('delete')}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* ── Return Item Selection Modal ── */}
+            <Modal
+                isOpen={returnModalOpen}
+                onClose={() => {
+                    setReturnModalOpen(false)
+                    setReturnCandidates([])
+                    setSelectedReturnItemId('')
+                    setReturnServiceId(null)
+                }}
+                title="Selectionner le produit a retourner"
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-500">
+                        Ce service contient plusieurs produits location. Selectionnez le produit a marquer comme retourne.
+                    </p>
+                    <div className="space-y-2 max-h-72 overflow-y-auto">
+                        {returnCandidates.map((item) => (
+                            <label
+                                key={item.id}
+                                className={`flex items-start gap-3 p-3 rounded-xl border transition ${
+                                    !item.canReturn
+                                        ? 'border-slate-200 bg-slate-50 opacity-70 cursor-not-allowed'
+                                        : selectedReturnItemId === item.id
+                                        ? 'border-blue-500 bg-blue-50'
+                                        : 'border-slate-200 hover:border-slate-300 cursor-pointer'
+                                }`}
+                            >
+                                <input
+                                    type="radio"
+                                    name="return-item"
+                                    checked={selectedReturnItemId === item.id}
+                                    onChange={() => item.canReturn && setSelectedReturnItemId(item.id)}
+                                    disabled={!item.canReturn}
+                                    className="mt-1"
+                                />
+                                <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-slate-800">{item.article_name}</p>
+                                    <p className="text-xs text-slate-500">
+                                        Qte: {item.qty}
+                                        {item.rental_start ? ` • Du: ${new Date(item.rental_start).toLocaleDateString()}` : ''}
+                                        {item.rental_end ? ` • Au: ${new Date(item.rental_end).toLocaleDateString()}` : ''}
+                                    </p>
+                                    {item.stateLabel && (
+                                        <p className={`text-[11px] mt-1 ${item.canReturn ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                            {item.stateLabel}
+                                        </p>
+                                    )}
+                                </div>
+                            </label>
+                        ))}
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <Button
+                            variant="secondary"
+                            onClick={() => {
+                                setReturnModalOpen(false)
+                                setReturnCandidates([])
+                                setSelectedReturnItemId('')
+                                setReturnServiceId(null)
+                            }}
+                        >
+                            Annuler
+                        </Button>
+                        <Button onClick={confirmReturnSelection} disabled={!selectedReturnItemId}>
+                            Marquer retourne
                         </Button>
                     </div>
                 </div>
