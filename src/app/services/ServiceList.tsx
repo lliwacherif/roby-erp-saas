@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useTenant } from '@/lib/tenant'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '@/lib/i18n'
+import { applyDueRentalStarts } from '@/lib/rentalStock'
 import { Plus, Eye, RotateCcw, Trash2, CalendarDays, User, Package, Hash, Clock, FileText } from 'lucide-react'
 
 type Service = Database['public']['Tables']['services']['Row'] & {
@@ -45,11 +46,16 @@ export default function ServiceList() {
 
     useEffect(() => {
         if (currentTenant) {
-            fetchServices().then(() => {
-                autoReturnExpired()
-            })
+            syncRentalState()
         }
     }, [currentTenant])
+
+    const syncRentalState = async () => {
+        if (!currentTenant) return
+        await applyDueRentalStarts(currentTenant.id)
+        await autoReturnExpired()
+        await fetchServices()
+    }
 
     const fetchServices = async () => {
         if (!currentTenant) return
@@ -81,12 +87,7 @@ export default function ServiceList() {
 
         if (!expired || expired.length === 0) return
 
-        for (const svc of expired) {
-            await performReturn(svc.id, true)
-        }
-
-        // Refresh list after auto-returns
-        fetchServices()
+        for (const svc of expired) await performReturn(svc.id, true)
     }
 
     // ── Shared return logic ──
@@ -94,18 +95,71 @@ export default function ServiceList() {
         if (!currentTenant) return
 
         // 1. Get items
-        const { data: rawItems } = await supabase.from('service_items').select('*').eq('service_id', serviceId)
-        const items = rawItems as any[]
+        const { data: rawItems } = await supabase
+            .from('service_items')
+            .select('id, article_id, qty')
+            .eq('service_id', serviceId)
+        const items = rawItems as Array<{ id: string; article_id: string; qty: number }>
         if (!items || items.length === 0) return
 
-        // 2. Create restock movements
-        const movements = items.map(item => ({
+        const itemIds = items.map((i) => i.id)
+        const { data: newStartMovements } = await supabase
+            .from('stock_movements')
+            .select('ref_id')
+            .eq('tenant_id', currentTenant.id)
+            .eq('ref_table', 'service_items')
+            .eq('reason', 'rental_start')
+            .in('ref_id', itemIds)
+
+        const { data: newReturnMovements } = await supabase
+            .from('stock_movements')
+            .select('ref_id')
+            .eq('tenant_id', currentTenant.id)
+            .eq('ref_table', 'service_items')
+            .eq('reason', 'rental_return')
+            .in('ref_id', itemIds)
+
+        // Backward compatibility for old services created before per-item rental starts.
+        const { data: legacyStarts } = await supabase
+            .from('stock_movements')
+            .select('id')
+            .eq('tenant_id', currentTenant.id)
+            .eq('ref_table', 'services')
+            .eq('ref_id', serviceId)
+            .ilike('reason', 'Rental Out #%')
+            .limit(1)
+
+        const { data: legacyReturns } = await supabase
+            .from('stock_movements')
+            .select('id')
+            .eq('tenant_id', currentTenant.id)
+            .eq('ref_table', 'services')
+            .eq('ref_id', serviceId)
+            .ilike('reason', 'location_return #%')
+            .limit(1)
+
+        const startedIds = new Set((newStartMovements || []).map((m: any) => m.ref_id).filter(Boolean))
+        const returnedIds = new Set((newReturnMovements || []).map((m: any) => m.ref_id).filter(Boolean))
+        const isLegacyStarted = Boolean((legacyStarts || []).length)
+        const isLegacyReturned = Boolean((legacyReturns || []).length)
+
+        const itemsToReturn = isLegacyStarted && !isLegacyReturned
+            ? items
+            : items.filter((item) => startedIds.has(item.id) && !returnedIds.has(item.id))
+
+        if (itemsToReturn.length === 0) {
+            if (!silent) alert('No started rental items to return yet.')
+            return
+        }
+
+        // 2. Create restock movements only for started/unreturned items
+        const movements = itemsToReturn.map(item => ({
             tenant_id: currentTenant.id,
             article_id: item.article_id,
             qty_delta: item.qty,
-            reason: `location_return #${serviceId.slice(0, 8)}`,
-            ref_table: 'services',
-            ref_id: serviceId
+            reason: 'rental_return',
+            ref_table: 'service_items',
+            ref_id: item.id
         }))
 
         const { error: moveError } = await supabase.from('stock_movements').insert(movements)
@@ -122,7 +176,7 @@ export default function ServiceList() {
     }
 
     const handleReturn = async (serviceId: string) => {
-        if (!confirm('Mark as returned and restock items? This will return ALL items.')) return
+        if (!confirm('Mark as returned and restock started items?')) return
         await performReturn(serviceId)
         fetchServices()
     }
@@ -398,7 +452,7 @@ export default function ServiceList() {
                                 }}
                             >
                                 <FileText className="h-4 w-4" />
-                                Invoice
+                                Facture
                             </Button>
                         </div>
                     </div>

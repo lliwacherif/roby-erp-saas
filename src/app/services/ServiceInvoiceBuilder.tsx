@@ -23,6 +23,7 @@ type ServiceData = {
   rental_start: string | null
   rental_end: string | null
   rental_deposit: number | null
+  discount_amount: number
   total: number
   created_at: string
 }
@@ -83,7 +84,7 @@ export default function ServiceInvoiceBuilder() {
 
     const { data: serviceData, error: serviceError } = await supabase
       .from('services')
-      .select('id, type, status, rental_start, rental_end, rental_deposit, total, created_at, client_id')
+      .select('id, type, status, rental_start, rental_end, rental_deposit, discount_amount, total, created_at, client_id')
       .eq('tenant_id', currentTenant.id)
       .eq('id', id)
       .single()
@@ -165,6 +166,8 @@ export default function ServiceInvoiceBuilder() {
     () => items.reduce((acc, item) => acc + item.qty * item.unit_price, 0),
     [items]
   )
+  const discountAmount = Math.max(0, Number(service?.discount_amount || 0))
+  const discountedSubtotal = Math.max(0, subtotal - discountAmount)
   const totalDeposit = useMemo(
     () => items.reduce((acc, item) => acc + (Number(item.rental_deposit) || 0), 0),
     [items]
@@ -172,9 +175,9 @@ export default function ServiceInvoiceBuilder() {
   // Mode behavior requested:
   // - TTC mode: entered amounts are treated as TTC (total remains the same)
   // - HT mode: entered amounts are treated as HT (TVA 19% added on top)
-  const subtotalHT = priceMode === 'TTC' ? subtotal / (1 + TVA_RATE) : subtotal
-  const tvaAmount = priceMode === 'TTC' ? subtotal - subtotalHT : subtotalHT * TVA_RATE
-  const subtotalTTC = priceMode === 'TTC' ? subtotal : subtotalHT + tvaAmount
+  const subtotalHT = priceMode === 'TTC' ? discountedSubtotal / (1 + TVA_RATE) : discountedSubtotal
+  const tvaAmount = priceMode === 'TTC' ? discountedSubtotal - subtotalHT : subtotalHT * TVA_RATE
+  const subtotalTTC = priceMode === 'TTC' ? discountedSubtotal : subtotalHT + tvaAmount
 
   const displayUnitPrice = (unitPrice: number) => unitPrice
   const displayLineTotal = (qty: number, unitPrice: number) => qty * unitPrice
@@ -327,6 +330,7 @@ export default function ServiceInvoiceBuilder() {
             <p>Du: {service.rental_start ? new Date(service.rental_start).toLocaleDateString('fr-FR') : '-'}</p>
             <p>Au: {service.rental_end ? new Date(service.rental_end).toLocaleDateString('fr-FR') : '-'}</p>
             {service.type === 'location' && <p>Caution: {fmt(totalDeposit > 0 ? totalDeposit : (service.rental_deposit || 0))} DT</p>}
+            {discountAmount > 0 && <p>Remise: -{fmt(discountAmount)} DT</p>}
             <p>Mode prix: {priceMode}</p>
             <p>TVA: 19%</p>
           </div>
@@ -372,6 +376,12 @@ export default function ServiceInvoiceBuilder() {
                 ))}
               </tbody>
               <tfoot className="bg-slate-50">
+                {discountAmount > 0 && (
+                  <tr>
+                    <td colSpan={service.type === 'location' ? 6 : 3} className="px-4 py-2.5 text-right font-semibold text-slate-700">Remise</td>
+                    <td className="px-4 py-2.5 text-right font-semibold text-red-600">- {fmt(discountAmount)} DT</td>
+                  </tr>
+                )}
                 <tr>
                   <td colSpan={service.type === 'location' ? 6 : 3} className="px-4 py-2.5 text-right font-semibold text-slate-700">Sous-total HT</td>
                   <td className="px-4 py-2.5 text-right font-semibold text-slate-900">{fmt(subtotalHT)} DT</td>

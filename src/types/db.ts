@@ -343,6 +343,7 @@ export type Database = {
           rental_start: string | null
           rental_end: string | null
           rental_deposit: number | null
+          discount_amount: number
           total: number
           created_at: string
           updated_at: string
@@ -356,6 +357,7 @@ export type Database = {
           rental_start?: string | null
           rental_end?: string | null
           rental_deposit?: number | null
+          discount_amount?: number
           total?: number
           created_at?: string
           updated_at?: string
@@ -369,6 +371,7 @@ export type Database = {
           rental_start?: string | null
           rental_end?: string | null
           rental_deposit?: number | null
+          discount_amount?: number
           total?: number
           created_at?: string
           updated_at?: string

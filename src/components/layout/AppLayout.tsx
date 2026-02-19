@@ -5,6 +5,7 @@ import { Package, Warehouse, Briefcase, Receipt, Users, BarChart3, HardHat } fro
 import { useTenant } from '@/lib/tenant'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
+import { applyDueRentalStarts } from '@/lib/rentalStock'
 import { useEffect, useState } from 'react'
 
 export default function AppLayout() {
@@ -19,6 +20,13 @@ export default function AppLayout() {
             return () => clearTimeout(timer)
         }
     }, [loading])
+
+    useEffect(() => {
+        if (!currentTenant) return
+        applyDueRentalStarts(currentTenant.id).catch(() => {
+            // Silent sync: avoid blocking UI on background stock scheduling.
+        })
+    }, [currentTenant])
 
     const navigation: NavItem[] = [
         { name: t('kpi'), href: '/app/kpi', icon: BarChart3 },

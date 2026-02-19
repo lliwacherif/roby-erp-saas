@@ -23,6 +23,7 @@ const itemSchema = z.object({
 const schema = z.object({
     type: z.enum(['vente', 'location']),
     client_id: z.string().min(1, "Client is required"),
+    discount_amount: z.coerce.number().min(0).optional(),
     items: z.array(itemSchema).min(1, "At least one item is required")
 })
 
@@ -36,6 +37,7 @@ export default function ServiceForm() {
         resolver: zodResolver(schema) as any,
         defaultValues: {
             type: 'vente',
+            discount_amount: 0,
             items: [{ article_id: '', qty: 1, unit_price: 0, rental_deposit: 0, rental_start: '', rental_end: '' }]
         }
     })
@@ -54,7 +56,9 @@ export default function ServiceForm() {
 
     const type = watch('type')
     const watchedItems = watch('items')
-    const total = watchedItems?.reduce((acc, item) => acc + (item.qty || 0) * (item.unit_price || 0), 0) || 0
+    const subtotal = watchedItems?.reduce((acc, item) => acc + (item.qty || 0) * (item.unit_price || 0), 0) || 0
+    const discountAmount = Number(watch('discount_amount') || 0)
+    const total = Math.max(0, subtotal - discountAmount)
     const totalDeposit = watchedItems?.reduce((acc, item) => acc + (Number(item.rental_deposit) || 0), 0) || 0
 
     useEffect(() => {
@@ -112,7 +116,12 @@ export default function ServiceForm() {
                 }
             }
 
-            const computedTotal = data.items.reduce((acc, item) => acc + (item.qty || 0) * (item.unit_price || 0), 0)
+            const computedSubtotal = data.items.reduce((acc, item) => acc + (item.qty || 0) * (item.unit_price || 0), 0)
+            const computedDiscount = Number(data.discount_amount || 0)
+            if (computedDiscount > computedSubtotal) {
+                throw new Error(`Remise ne peut pas depasser le total (${computedSubtotal.toLocaleString('fr-FR')} DT).`)
+            }
+            const computedTotal = Math.max(0, computedSubtotal - computedDiscount)
             const computedDeposit = data.type === 'location'
                 ? data.items.reduce((acc, item) => acc + (Number(item.rental_deposit) || 0), 0)
                 : 0
@@ -133,6 +142,7 @@ export default function ServiceForm() {
                 rental_start: serviceRentalStart,
                 rental_end: serviceRentalEnd,
                 rental_deposit: computedDeposit,
+                discount_amount: computedDiscount,
                 total: computedTotal
             }).select().single()
 
@@ -153,17 +163,18 @@ export default function ServiceForm() {
             const { error: itemsError } = await supabase.from('service_items').insert(itemsToInsert)
             if (itemsError) throw itemsError
 
-            const reason = data.type === 'vente' ? `Sale #${svc.id.slice(0, 8)}` : `Rental Out #${svc.id.slice(0, 8)}`
-            const movementsToInsert = data.items.map(item => ({
-                tenant_id: currentTenant.id,
-                article_id: item.article_id,
-                qty_delta: -item.qty,
-                reason: reason,
-                ref_table: 'services',
-                ref_id: svc.id
-            }))
-            const { error: moveError } = await supabase.from('stock_movements').insert(movementsToInsert)
-            if (moveError) throw moveError
+            if (data.type === 'vente') {
+                const movementsToInsert = data.items.map(item => ({
+                    tenant_id: currentTenant.id,
+                    article_id: item.article_id,
+                    qty_delta: -item.qty,
+                    reason: `Sale #${svc.id.slice(0, 8)}`,
+                    ref_table: 'services',
+                    ref_id: svc.id
+                }))
+                const { error: moveError } = await supabase.from('stock_movements').insert(movementsToInsert)
+                if (moveError) throw moveError
+            }
 
             navigate('/app/services')
         } catch (e: any) {
@@ -411,7 +422,30 @@ export default function ServiceForm() {
                     </div>
                 </div>
 
-                {/* ─── Section 4: Total & Actions ─── */}
+                {/* ─── Section 4: Discount (location) ─── */}
+                {type === 'location' && (
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
+                            <h2 className="text-sm font-semibold text-slate-800">Remise</h2>
+                        </div>
+                        <div className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    step="0.01"
+                                    label="Montant Remise (DT)"
+                                    {...register('discount_amount')}
+                                />
+                                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 self-end">
+                                    Sous-total: {subtotal.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DT
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ─── Section 5: Total & Actions ─── */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
                         <div className="flex items-center gap-2.5">
@@ -429,6 +463,12 @@ export default function ServiceForm() {
                                         <p className="text-xs text-slate-400 uppercase tracking-wider">{t('serviceItems')}</p>
                                         <p className="text-2xl font-bold text-slate-900">{total.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} <span className="text-base font-medium text-slate-400">DT</span></p>
                                     </div>
+                                    {type === 'location' && discountAmount > 0 && (
+                                        <div>
+                                            <p className="text-xs text-slate-400 uppercase tracking-wider">Remise</p>
+                                            <p className="text-lg font-semibold text-red-500">- {discountAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} <span className="text-sm font-medium text-red-300">DT</span></p>
+                                        </div>
+                                    )}
                                     {type === 'location' && totalDeposit > 0 && (
                                         <div>
                                             <p className="text-xs text-slate-400 uppercase tracking-wider">{t('deposit')}</p>
