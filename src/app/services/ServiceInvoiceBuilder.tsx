@@ -357,7 +357,14 @@ export default function ServiceInvoiceBuilder() {
               <tbody className="divide-y divide-slate-100">
                 {items.map((item) => (
                   <tr key={item.id}>
-                    <td className="px-4 py-2.5">{item.article_name}</td>
+                    <td className="px-4 py-2.5">
+                      {item.article_name}
+                      {service.type === 'location' && item.unit_price === 0 && (
+                        <span className="ml-2 inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                          CADEAU
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-2.5 text-center">{item.qty}</td>
                     {service.type === 'location' && (
                       <>

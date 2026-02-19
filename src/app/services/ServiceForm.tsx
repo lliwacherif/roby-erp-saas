@@ -8,13 +8,14 @@ import { supabase } from '@/lib/supabase'
 import { useTenant } from '@/lib/tenant'
 import { useI18n } from '@/lib/i18n'
 import { ClientSelect } from './ClientSelect'
-import { Trash, Plus, ShoppingBag, CalendarDays, Package, ArrowLeft, Receipt } from 'lucide-react'
+import { Trash, Plus, ShoppingBag, CalendarDays, Package, ArrowLeft, Receipt, Gift } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const itemSchema = z.object({
-    article_id: z.string().min(1, "Article is required"),
+    article_id: z.string({ required_error: "Article is required" }).min(1, "Article is required"),
     qty: z.coerce.number().min(1, "Qty must be >= 1"),
     unit_price: z.coerce.number().min(0, "Price must be >= 0"),
+    is_gift: z.coerce.boolean().optional(),
     rental_deposit: z.coerce.number().min(0).optional(),
     rental_start: z.string().optional(),
     rental_end: z.string().optional(),
@@ -22,7 +23,7 @@ const itemSchema = z.object({
 
 const schema = z.object({
     type: z.enum(['vente', 'location']),
-    client_id: z.string().min(1, "Client is required"),
+    client_id: z.string({ required_error: "Client is required" }).min(1, "Client is required"),
     discount_amount: z.coerce.number().min(0).optional(),
     items: z.array(itemSchema).min(1, "At least one item is required")
 })
@@ -33,12 +34,13 @@ export default function ServiceForm() {
     const navigate = useNavigate()
     const { t } = useI18n()
     const isEditing = false
-    const { register, control, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
+    const { register, control, handleSubmit, watch, setValue, getValues, formState: { errors, isSubmitting } } = useForm<FormData>({
         resolver: zodResolver(schema) as any,
         defaultValues: {
             type: 'vente',
+            client_id: '',
             discount_amount: 0,
-            items: [{ article_id: '', qty: 1, unit_price: 0, rental_deposit: 0, rental_start: '', rental_end: '' }]
+            items: [{ article_id: '', qty: 1, unit_price: 0, is_gift: false, rental_deposit: 0, rental_start: '', rental_end: '' }]
         }
     })
 
@@ -56,10 +58,23 @@ export default function ServiceForm() {
 
     const type = watch('type')
     const watchedItems = watch('items')
+    const selectedLocationProducts = watchedItems?.filter((item) => Boolean(item?.article_id)).length || 0
+    const canUseGift = type === 'location' && selectedLocationProducts >= 2
     const subtotal = watchedItems?.reduce((acc, item) => acc + (item.qty || 0) * (item.unit_price || 0), 0) || 0
     const discountAmount = Number(watch('discount_amount') || 0)
     const total = Math.max(0, subtotal - discountAmount)
     const totalDeposit = watchedItems?.reduce((acc, item) => acc + (Number(item.rental_deposit) || 0), 0) || 0
+
+    useEffect(() => {
+        if (type !== 'location' || canUseGift) return
+        watchedItems?.forEach((item, index) => {
+            if (item?.is_gift) {
+                setValue(`items.${index}.is_gift`, false)
+                const article = articles.find(a => a.id === item.article_id)
+                if (article) setValue(`items.${index}.unit_price`, article.prix_location_min)
+            }
+        })
+    }, [type, canUseGift, watchedItems, setValue, articles])
 
     useEffect(() => {
         if (currentTenant) fetchArticles()
@@ -80,7 +95,25 @@ export default function ServiceForm() {
         const article = articles.find(a => a.id === articleId)
         if (article) {
             const defaultPrice = type === 'location' ? article.prix_location_min : article.prix_achat
-            setValue(`items.${index}.unit_price`, defaultPrice)
+            const isGift = Boolean(getValues(`items.${index}.is_gift`))
+            setValue(`items.${index}.unit_price`, isGift ? 0 : defaultPrice)
+        }
+    }
+
+    const toggleGift = (index: number) => {
+        if (!canUseGift) return
+        const current = Boolean(getValues(`items.${index}.is_gift`))
+        const next = !current
+        setValue(`items.${index}.is_gift`, next)
+        if (next) {
+            setValue(`items.${index}.unit_price`, 0)
+        } else {
+            const articleId = getValues(`items.${index}.article_id`)
+            const article = articles.find(a => a.id === articleId)
+            if (article) {
+                const defaultPrice = type === 'location' ? article.prix_location_min : article.prix_achat
+                setValue(`items.${index}.unit_price`, defaultPrice)
+            }
         }
     }
 
@@ -91,6 +124,7 @@ export default function ServiceForm() {
         try {
             const { data: liveStock } = await supabase.from('v_stock_overview').select('id, nom, qte_on_hand').eq('tenant_id', currentTenant.id)
             const stockMap = new Map((liveStock || []).map((s: any) => [s.id, s]))
+            const locationProductCount = data.items.filter((item) => Boolean(item.article_id)).length
 
             for (const item of data.items) {
                 const stock = stockMap.get(item.article_id) as any
@@ -102,10 +136,17 @@ export default function ServiceForm() {
                 }
 
                 if (data.type === 'location') {
+                    if (Boolean(item.is_gift) && locationProductCount < 2) {
+                        throw new Error('Mode cadeau disponible a partir de 2 produits location.')
+                    }
                     const min = Number(article.prix_location_min ?? 0)
                     const max = Number(article.prix_location_max ?? 0)
-                    if (item.unit_price < min || item.unit_price > max) {
+                    const isGift = Boolean(item.is_gift)
+                    if (!isGift && (item.unit_price < min || item.unit_price > max)) {
                         throw new Error(`${article.nom}: ${t('locationPriceRangeError')} [${min} - ${max}]`)
+                    }
+                    if (isGift && item.unit_price !== 0) {
+                        throw new Error(`${article.nom}: cadeau doit etre a 0 DT.`)
                     }
                     if (!item.rental_start || !item.rental_end) {
                         throw new Error(`${article.nom}: ${t('rentalPeriod')} (${t('from')} / ${t('to')}) is required.`)
@@ -184,6 +225,28 @@ export default function ServiceForm() {
         }
     }
 
+    const onInvalid = () => {
+        const firstItemErr = errors.items?.find?.((e: any) => e && (
+            e.article_id?.message ||
+            e.qty?.message ||
+            e.unit_price?.message ||
+            e.rental_start?.message ||
+            e.rental_end?.message ||
+            e.rental_deposit?.message
+        ))
+        const message =
+            errors.client_id?.message ||
+            (typeof errors.items?.message === 'string' ? errors.items.message : undefined) ||
+            firstItemErr?.article_id?.message ||
+            firstItemErr?.qty?.message ||
+            firstItemErr?.unit_price?.message ||
+            firstItemErr?.rental_start?.message ||
+            firstItemErr?.rental_end?.message ||
+            firstItemErr?.rental_deposit?.message ||
+            'Veuillez verifier les champs obligatoires.'
+        alert(String(message))
+    }
+
     return (
         <div className="max-w-5xl mx-auto pb-10">
             {/* Header */}
@@ -200,7 +263,7 @@ export default function ServiceForm() {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
 
                 {/* ─── Section 1: Service Type & Client ─── */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -304,7 +367,7 @@ export default function ServiceForm() {
                             <Button
                                 type="button"
                                 size="sm"
-                                onClick={() => append({ article_id: '', qty: 1, unit_price: 0, rental_deposit: 0, rental_start: '', rental_end: '' })}
+                                onClick={() => append({ article_id: '', qty: 1, unit_price: 0, is_gift: false, rental_deposit: 0, rental_start: '', rental_end: '' })}
                             >
                                 <Plus className="h-4 w-4" />
                                 {t('add')}
@@ -324,6 +387,7 @@ export default function ServiceForm() {
                         {fields.map((field, index) => {
                             const qty = watchedItems?.[index]?.qty || 0
                             const price = watchedItems?.[index]?.unit_price || 0
+                            const isGift = Boolean(watchedItems?.[index]?.is_gift)
                             const subtotal = qty * price
 
                             return (
@@ -368,6 +432,7 @@ export default function ServiceForm() {
                                             step="0.01"
                                             min={0}
                                             {...register(`items.${index}.unit_price`)}
+                                            disabled={type === 'location' && isGift}
                                         />
                                     </div>
 
@@ -377,7 +442,24 @@ export default function ServiceForm() {
                                     </div>
 
                                     {/* Remove */}
-                                    <div className="md:col-span-1 flex justify-end">
+                                    <div className="md:col-span-1 flex justify-end gap-1.5">
+                                        {type === 'location' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleGift(index)}
+                                                disabled={!canUseGift}
+                                                title={canUseGift ? 'Marquer cadeau (0 DT)' : 'Disponible a partir de 2 produits location'}
+                                                className={`p-2 rounded-lg transition-all ${
+                                                    isGift
+                                                        ? 'bg-amber-100 text-amber-700'
+                                                        : canUseGift
+                                                            ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                                                            : 'text-slate-300 cursor-not-allowed'
+                                                }`}
+                                            >
+                                                <Gift className="h-4 w-4" />
+                                            </button>
+                                        )}
                                         <button
                                             type="button"
                                             onClick={() => remove(index)}
