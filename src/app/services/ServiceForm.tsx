@@ -12,7 +12,7 @@ import { Trash, Plus, ShoppingBag, CalendarDays, Package, ArrowLeft, Receipt, Gi
 import { useNavigate } from 'react-router-dom'
 
 const itemSchema = z.object({
-    article_id: z.string({ required_error: "Article is required" }).min(1, "Article is required"),
+    article_id: z.coerce.string().min(1, "Article is required"),
     qty: z.coerce.number().min(1, "Qty must be >= 1"),
     unit_price: z.coerce.number().min(0, "Price must be >= 0"),
     is_gift: z.coerce.boolean().optional(),
@@ -23,7 +23,7 @@ const itemSchema = z.object({
 
 const schema = z.object({
     type: z.enum(['vente', 'location']),
-    client_id: z.string({ required_error: "Client is required" }).min(1, "Client is required"),
+    client_id: z.coerce.string().min(1, "Client is required"),
     discount_amount: z.coerce.number().min(0).optional(),
     items: z.array(itemSchema).min(1, "At least one item is required")
 })
