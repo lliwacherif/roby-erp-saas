@@ -104,13 +104,13 @@ export default function DepensePage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">{t('expensesTitle')}</h1>
                     <p className="text-sm text-slate-500 mt-0.5">{depenses.length} {t('expenses').toLowerCase()}</p>
                 </div>
-                <Button onClick={() => setIsModalOpen(true)}>
-                    <Plus className="h-4 w-4" />
+                <Button onClick={() => setIsModalOpen(true)} className="w-full sm:w-auto">
+                    <Plus className="h-4 w-4 mr-1.5" />
                     {t('newExpense')}
                 </Button>
             </div>
@@ -149,9 +149,9 @@ export default function DepensePage() {
                     <Input label={t('description')} {...register('description')} />
                     <Input type="date" label={t('date')} {...register('spent_at')} error={errors.spent_at?.message} />
 
-                    <div className="flex justify-end gap-2 pt-2">
-                        <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>{t('cancel')}</Button>
-                        <Button type="submit">{t('save')}</Button>
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-slate-100 mt-4">
+                        <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto">{t('cancel')}</Button>
+                        <Button type="submit" className="w-full sm:w-auto">{t('save')}</Button>
                     </div>
                 </form>
             </Modal>

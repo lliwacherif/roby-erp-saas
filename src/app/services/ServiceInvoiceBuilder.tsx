@@ -218,11 +218,11 @@ export default function ServiceInvoiceBuilder() {
         }
       `}</style>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 print-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4 print-hidden w-full sm:w-auto">
           <button
             onClick={() => navigate('/app/services')}
-            className="flex items-center justify-center h-10 w-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
+            className="flex items-center justify-center h-10 w-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -231,33 +231,31 @@ export default function ServiceInvoiceBuilder() {
             <p className="text-sm text-slate-500">Service #{service.id.slice(0, 8)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 print-hidden">
-          <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+        <div className="flex flex-col sm:flex-row gap-3 print-hidden w-full sm:w-auto">
+          <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white p-1 shadow-sm w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setPriceMode('TTC')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                priceMode === 'TTC'
+              className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${priceMode === 'TTC'
                   ? 'bg-blue-600 text-white'
                   : 'text-slate-600 hover:bg-slate-100'
-              }`}
+                }`}
             >
               TTC
             </button>
             <button
               type="button"
               onClick={() => setPriceMode('HT')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                priceMode === 'HT'
+              className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${priceMode === 'HT'
                   ? 'bg-blue-600 text-white'
                   : 'text-slate-600 hover:bg-slate-100'
-              }`}
+                }`}
             >
               HT
             </button>
           </div>
-          <Button onClick={() => window.print()}>
-            <Printer className="h-4 w-4" />
+          <Button onClick={() => window.print()} className="w-full sm:w-auto">
+            <Printer className="h-4 w-4 mr-1.5" />
             Imprimer
           </Button>
         </div>
@@ -335,8 +333,8 @@ export default function ServiceInvoiceBuilder() {
             <p>TVA: 19%</p>
           </div>
 
-          <div className="border border-slate-300 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="border border-slate-300 rounded-xl overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-slate-50">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium text-slate-500">Article</th>

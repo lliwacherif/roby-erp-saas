@@ -250,7 +250,7 @@ export default function ServiceForm() {
     return (
         <div className="max-w-5xl mx-auto pb-10">
             {/* Header */}
-            <div className="flex items-center gap-4 mb-8">
+            <div className="flex items-center gap-4 mb-6 sm:mb-8">
                 <button
                     onClick={() => navigate('/app/services')}
                     className="flex items-center justify-center h-10 w-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
@@ -449,13 +449,12 @@ export default function ServiceForm() {
                                                 onClick={() => toggleGift(index)}
                                                 disabled={!canUseGift}
                                                 title={canUseGift ? 'Marquer cadeau (0 DT)' : 'Disponible a partir de 2 produits location'}
-                                                className={`p-2 rounded-lg transition-all ${
-                                                    isGift
+                                                className={`p-2 rounded-lg transition-all ${isGift
                                                         ? 'bg-amber-100 text-amber-700'
                                                         : canUseGift
                                                             ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
                                                             : 'text-slate-300 cursor-not-allowed'
-                                                }`}
+                                                    }`}
                                             >
                                                 <Gift className="h-4 w-4" />
                                             </button>
@@ -561,19 +560,19 @@ export default function ServiceForm() {
                                 <p className="text-xs text-slate-400">{fields.length} article{fields.length !== 1 ? 's' : ''} • {type === 'vente' ? 'Vente' : 'Location'}</p>
                             </div>
 
-                            <div className="flex gap-3">
+                            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto mt-6 sm:mt-0">
                                 <Button
                                     type="button"
                                     variant="secondary"
                                     onClick={() => navigate('/app/services')}
-                                    className="px-6"
+                                    className="w-full sm:w-auto px-6"
                                 >
                                     {t('cancel')}
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={isSubmitting || loading}
-                                    className="px-8 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 shadow-lg shadow-blue-600/25"
+                                    className="w-full sm:w-auto px-8 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 shadow-lg shadow-blue-600/25"
                                 >
                                     {isSubmitting || loading ? t('saving') : t('save')}
                                 </Button>

@@ -110,7 +110,7 @@ export default function ClientForm() {
             <div className="flex items-center gap-4 mb-8">
                 <button
                     onClick={() => navigate('/app/clients')}
-                    className="flex items-center justify-center h-10 w-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
+                    className="flex items-center justify-center h-10 w-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
                 >
                     <ArrowLeft className="h-5 w-5" />
                 </button>

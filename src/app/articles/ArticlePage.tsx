@@ -20,14 +20,14 @@ export default function ArticlePage() {
         <div className="space-y-6">
             <h1 className="text-2xl font-bold text-slate-900">{t('articleManagement')}</h1>
 
-            <div className="border-b border-slate-200">
-                <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+            <div className="border-b border-slate-200 -mx-4 sm:mx-0 px-4 sm:px-0">
+                <nav className="-mb-px flex space-x-6 overflow-x-auto hide-scrollbar" aria-label="Tabs">
                     {tabs.map(tab => (
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
                             className={clsx(
-                                'whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium flex items-center gap-2 transition-all duration-200',
+                                'whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium flex items-center gap-2 transition-all duration-200 shrink-0',
                                 activeTab === tab.key
                                     ? 'border-blue-600 text-blue-600'
                                     : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300'

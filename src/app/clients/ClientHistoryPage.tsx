@@ -81,16 +81,16 @@ export default function ClientHistoryPage() {
             .in('service_id', serviceIds)
 
         const groupedItems = new Map<string, ServiceWithItems['items']>()
-        ;((itemsData || []) as any[]).forEach(item => {
-            const existing = groupedItems.get(item.service_id) || []
-            existing.push({
-                id: item.id,
-                qty: item.qty,
-                unit_price: item.unit_price,
-                article_name: item.articles?.nom || '-',
+            ; ((itemsData || []) as any[]).forEach(item => {
+                const existing = groupedItems.get(item.service_id) || []
+                existing.push({
+                    id: item.id,
+                    qty: item.qty,
+                    unit_price: item.unit_price,
+                    article_name: item.articles?.nom || '-',
+                })
+                groupedItems.set(item.service_id, existing)
             })
-            groupedItems.set(item.service_id, existing)
-        })
 
         setServices(
             baseServices.map(service => ({
@@ -118,7 +118,7 @@ export default function ClientHistoryPage() {
             <div className="flex items-center gap-4">
                 <button
                     onClick={() => navigate('/app/clients')}
-                    className="flex items-center justify-center h-10 w-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
+                    className="flex items-center justify-center h-10 w-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
                 >
                     <ArrowLeft className="h-5 w-5" />
                 </button>
@@ -156,7 +156,7 @@ export default function ClientHistoryPage() {
                     {services.map(service => (
                         <div key={service.id} className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium">
                                         <ShoppingBag className="h-3.5 w-3.5" />
                                         {service.type.toUpperCase()}

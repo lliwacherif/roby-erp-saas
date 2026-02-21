@@ -13,10 +13,12 @@ export function Sidebar({
     navigation,
     logoUrl,
     brandName = 'ROBY',
+    onClose,
 }: {
     navigation: NavItem[]
     logoUrl?: string | null
     brandName?: string
+    onClose?: () => void
 }) {
     const location = useLocation()
 
@@ -47,6 +49,7 @@ export function Sidebar({
                             <li key={item.name}>
                                 <Link
                                     to={item.href}
+                                    onClick={onClose}
                                     className={clsx(
                                         'group flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
                                         isActive

@@ -182,22 +182,22 @@ export default function ArticlesTab() {
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-center bg-gray-50 p-4 rounded-md">
-                <div className="flex gap-4">
-                    <select className="rounded border-gray-300 text-sm" value={filterFamille} onChange={e => { setFilterFamille(e.target.value); setFilterCategory(''); }}>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-slate-50 p-4 rounded-xl border border-slate-200 gap-4 mb-4">
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <select className="rounded-lg border-slate-300 text-sm w-full sm:w-auto" value={filterFamille} onChange={e => { setFilterFamille(e.target.value); setFilterCategory(''); }}>
                         <option value="">{t('allFamilles')}</option>
                         {familles.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                     </select>
-                    <select className="rounded border-gray-300 text-sm" value={filterCategory} onChange={e => setFilterCategory(e.target.value)} disabled={!filterFamille}>
+                    <select className="rounded-lg border-slate-300 text-sm w-full sm:w-auto disabled:bg-slate-100" value={filterCategory} onChange={e => setFilterCategory(e.target.value)} disabled={!filterFamille}>
                         <option value="">{t('allCategories')}</option>
                         {categories.filter(c => c.famille_id === filterFamille).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                 </div>
-                <div className="flex justify-end gap-2">
-                    <Button variant="secondary" onClick={() => navigate('/app/articles/history')}>
+                <div className="flex flex-col sm:flex-row justify-end gap-3 w-full sm:w-auto">
+                    <Button variant="secondary" onClick={() => navigate('/app/articles/history')} className="w-full sm:w-auto">
                         Historique Articles
                     </Button>
-                    <Button onClick={() => setIsCreateOpen(true)}>{t('newArticle')}</Button>
+                    <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto">{t('newArticle')}</Button>
                 </div>
             </div>
 

@@ -101,12 +101,12 @@ export default function ClientList() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">{t('clients') || 'Clients'}</h1>
                     <p className="text-sm text-slate-500 mt-1">{clients.length} {t('clients')?.toLowerCase() || 'clients'}</p>
                 </div>
-                <Button onClick={() => navigate('/app/clients/new')}>
+                <Button onClick={() => navigate('/app/clients/new')} className="w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-2" />
                     {t('newClient') || 'New Client'}
                 </Button>

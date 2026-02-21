@@ -376,13 +376,13 @@ export default function ServiceList() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">{t('servicesTitle')}</h1>
                     <p className="text-sm text-slate-500 mt-0.5">{services.length} {t('services').toLowerCase()}</p>
                 </div>
-                <Button onClick={() => navigate('/app/services/new')}>
-                    <Plus className="h-4 w-4" />
+                <Button onClick={() => navigate('/app/services/new')} className="w-full sm:w-auto">
+                    <Plus className="h-4 w-4 mr-1.5" />
                     {t('newService')}
                 </Button>
             </div>
@@ -475,8 +475,8 @@ export default function ServiceList() {
                             ) : detailItems.length === 0 ? (
                                 <p className="text-sm text-slate-400 text-center py-4">{t('noResults')}</p>
                             ) : (
-                                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                                    <table className="w-full text-sm">
+                                <div className="border border-slate-200 rounded-xl overflow-x-auto">
+                                    <table className="w-full text-sm min-w-[600px]">
                                         <thead className="bg-slate-50">
                                             <tr>
                                                 <th className="text-left px-4 py-2 font-medium text-slate-500">{t('articles')}</th>
@@ -554,10 +554,10 @@ export default function ServiceList() {
                             {t('deleteConfirmMessage')} <strong>{deleteTarget?.clients?.full_name || 'Service'}</strong>?
                         </p>
                     </div>
-                    <div className="flex justify-end gap-2">
-                        <Button variant="secondary" onClick={() => setIsDeleteOpen(false)}>{t('cancel')}</Button>
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-slate-100 mt-4">
+                        <Button variant="secondary" onClick={() => setIsDeleteOpen(false)} className="w-full sm:w-auto">{t('cancel')}</Button>
                         <Button onClick={handleDelete} disabled={deleting}
-                            className="!bg-red-600 hover:!bg-red-700 !shadow-none">
+                            className="w-full sm:w-auto !bg-red-600 hover:!bg-red-700 !shadow-none">
                             {deleting ? t('loading') : t('delete')}
                         </Button>
                     </div>
@@ -583,13 +583,12 @@ export default function ServiceList() {
                         {returnCandidates.map((item) => (
                             <label
                                 key={item.id}
-                                className={`flex items-start gap-3 p-3 rounded-xl border transition ${
-                                    !item.canReturn
+                                className={`flex items-start gap-3 p-3 rounded-xl border transition ${!item.canReturn
                                         ? 'border-slate-200 bg-slate-50 opacity-70 cursor-not-allowed'
                                         : selectedReturnItemId === item.id
-                                        ? 'border-blue-500 bg-blue-50'
-                                        : 'border-slate-200 hover:border-slate-300 cursor-pointer'
-                                }`}
+                                            ? 'border-blue-500 bg-blue-50'
+                                            : 'border-slate-200 hover:border-slate-300 cursor-pointer'
+                                    }`}
                             >
                                 <input
                                     type="radio"
@@ -615,9 +614,10 @@ export default function ServiceList() {
                             </label>
                         ))}
                     </div>
-                    <div className="flex justify-end gap-2">
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-slate-100 mt-4">
                         <Button
                             variant="secondary"
+                            className="w-full sm:w-auto"
                             onClick={() => {
                                 setReturnModalOpen(false)
                                 setReturnCandidates([])
@@ -627,7 +627,7 @@ export default function ServiceList() {
                         >
                             Annuler
                         </Button>
-                        <Button onClick={confirmReturnSelection} disabled={!selectedReturnItemId}>
+                        <Button onClick={confirmReturnSelection} disabled={!selectedReturnItemId} className="w-full sm:w-auto">
                             Marquer retourne
                         </Button>
                     </div>

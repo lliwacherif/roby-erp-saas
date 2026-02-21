@@ -202,13 +202,13 @@ export default function KpiPage() {
                     <h1 className="text-2xl font-bold text-slate-900">{t('kpiTitle')}</h1>
                     <p className="text-sm text-slate-500 mt-0.5">{t('kpiSubtitle')}</p>
                 </div>
-                <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
-                    <Calendar className="h-4 w-4 text-slate-400 ml-2 mr-1" />
+                <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm overflow-x-auto min-w-0 max-w-full hide-scrollbar">
+                    <Calendar className="h-4 w-4 text-slate-400 ml-2 mr-1 shrink-0" />
                     {periods.map(p => (
                         <button
                             key={p.key}
                             onClick={() => setPeriod(p.key)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${period === p.key
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 ${period === p.key
                                 ? 'bg-blue-600 text-white shadow-sm'
                                 : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
                                 }`}
@@ -222,7 +222,7 @@ export default function KpiPage() {
             {/* ── Top KPI Cards ── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {/* Total Earnings */}
-                <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-200 p-5 shadow-sm group hover:shadow-md hover:border-slate-300 transition-all">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-sm font-medium text-slate-500">{t('totalEarnings')}</span>
                         <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-emerald-100 text-emerald-600">
@@ -238,7 +238,7 @@ export default function KpiPage() {
                 </div>
 
                 {/* Total Expenses */}
-                <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-200 p-5 shadow-sm group hover:shadow-md hover:border-slate-300 transition-all">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-sm font-medium text-slate-500">{t('totalExpenses')}</span>
                         <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-red-100 text-red-600">
@@ -253,7 +253,7 @@ export default function KpiPage() {
                 </div>
 
                 {/* Net Profit */}
-                <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-200 p-5 shadow-sm group hover:shadow-md hover:border-slate-300 transition-all">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-sm font-medium text-slate-500">{t('netProfit')}</span>
                         <div className={`flex items-center justify-center h-10 w-10 rounded-xl ${data.netProfit >= 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
@@ -267,7 +267,7 @@ export default function KpiPage() {
                 </div>
 
                 {/* Stock Value */}
-                <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                <div className="relative overflow-hidden bg-white rounded-2xl border border-slate-200 p-5 shadow-sm group hover:shadow-md hover:border-slate-300 transition-all">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-sm font-medium text-slate-500">{t('stockValue')}</span>
                         <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-blue-100 text-blue-600">

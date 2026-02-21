@@ -1,10 +1,10 @@
 import { useAuth } from '@/lib/auth'
 import { useTenant } from '@/lib/tenant'
 import { useI18n } from '@/lib/i18n'
-import { LogOut, User, Globe, ChevronDown } from 'lucide-react'
+import { LogOut, User, Globe, ChevronDown, Menu } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 
-export function Topbar({ showTenantSwitcher = false }: { showTenantSwitcher?: boolean }) {
+export function Topbar({ showTenantSwitcher = false, onOpenSidebar }: { showTenantSwitcher?: boolean, onOpenSidebar?: () => void }) {
     const { user, signOut, profile } = useAuth()
     const { currentTenant, tenants, startTransition } = useTenant()
     const { locale, setLocale, t } = useI18n()
@@ -23,9 +23,20 @@ export function Topbar({ showTenantSwitcher = false }: { showTenantSwitcher?: bo
     }, [])
 
     return (
-        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-slate-200 bg-white/80 backdrop-blur-lg px-6">
-            {/* Left — Tenant Switcher */}
-            <div className="flex flex-1 items-center">
+        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-slate-200 bg-white/80 backdrop-blur-lg px-4 sm:px-6">
+            {/* Left — Hamburger & Tenant Switcher */}
+            <div className="flex flex-1 items-center gap-3">
+                {onOpenSidebar && (
+                    <button
+                        type="button"
+                        className="-m-2 p-2 text-slate-600 lg:hidden hover:bg-slate-100 rounded-lg transition-colors"
+                        onClick={onOpenSidebar}
+                    >
+                        <span className="sr-only">Open sidebar</span>
+                        <Menu className="h-6 w-6" aria-hidden="true" />
+                    </button>
+                )}
+
                 {showTenantSwitcher && (
                     <div className="relative">
                         <select

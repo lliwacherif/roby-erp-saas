@@ -49,9 +49,9 @@ export function DataTable<TData, TValue>({
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
                 {searchKey && (
-                    <div className="flex items-center w-72">
+                    <div className="w-full sm:w-72">
                         <Input
                             placeholder={t('filter')}
                             value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
@@ -61,7 +61,11 @@ export function DataTable<TData, TValue>({
                         />
                     </div>
                 )}
-                {action}
+                {action && (
+                    <div className="flex items-center sm:justify-end w-full sm:w-auto">
+                        {action}
+                    </div>
+                )}
             </div>
             <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
@@ -129,14 +133,15 @@ export function DataTable<TData, TValue>({
                     </table>
                 </div>
             </div>
-            <div className="flex items-center justify-between py-2">
-                <div className="text-sm text-slate-500">
+            <div className="flex flex-col sm:flex-row items-center justify-between py-2 gap-3">
+                <div className="text-sm text-slate-500 text-center sm:text-left">
                     {t('page')} {table.getState().pagination.pageIndex + 1} {t('of')} {table.getPageCount() || 1}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto justify-between sm:justify-end">
                     <Button
                         variant="secondary"
                         size="sm"
+                        className="flex-1 sm:flex-none"
                         onClick={() => table.previousPage()}
                         disabled={!table.getCanPreviousPage()}
                     >
@@ -145,6 +150,7 @@ export function DataTable<TData, TValue>({
                     <Button
                         variant="secondary"
                         size="sm"
+                        className="flex-1 sm:flex-none"
                         onClick={() => table.nextPage()}
                         disabled={!table.getCanNextPage()}
                     >

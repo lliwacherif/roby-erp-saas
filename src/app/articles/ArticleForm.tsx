@@ -255,9 +255,9 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
                 )}
             </div>
 
-            <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="secondary" onClick={onCancel}>{t('cancel')}</Button>
-                <Button type="submit" disabled={saving}>{saving ? t('saving') : t('save')}</Button>
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-slate-200 mt-6">
+                <Button type="button" variant="secondary" onClick={onCancel} className="w-full sm:w-auto">{t('cancel')}</Button>
+                <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? t('saving') : t('save')}</Button>
             </div>
         </form>
     )

@@ -276,13 +276,13 @@ export default function OuvrierPage() {
                 </div>
             )}
 
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">{t('workersTitle')}</h1>
                     <p className="text-sm text-slate-500 mt-0.5">{ouvriers.length} {t('workers').toLowerCase()}</p>
                 </div>
-                <Button onClick={() => { setEditingId(null); reset(); setIsModalOpen(true); }}>
-                    <Plus className="h-4 w-4" />
+                <Button onClick={() => { setEditingId(null); reset(); setIsModalOpen(true); }} className="w-full sm:w-auto">
+                    <Plus className="h-4 w-4 mr-1.5" />
                     {t('newWorker')}
                 </Button>
             </div>
@@ -297,9 +297,9 @@ export default function OuvrierPage() {
                     <Input label={t('joinDate')} type="date" {...register('joined_at')} />
                     <Input label={t('payDay')} type="number" min={1} max={28} {...register('pay_day')} placeholder="1-28" />
 
-                    <div className="flex justify-end gap-2 pt-2">
-                        <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>{t('cancel')}</Button>
-                        <Button type="submit">{t('save')}</Button>
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-slate-100 mt-4">
+                        <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto">{t('cancel')}</Button>
+                        <Button type="submit" className="w-full sm:w-auto">{t('save')}</Button>
                     </div>
                 </form>
             </Modal>
