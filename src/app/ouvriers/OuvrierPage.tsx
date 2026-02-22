@@ -306,7 +306,7 @@ export default function OuvrierPage() {
                         <Button size="sm" variant="ghost" onClick={() => {
                             setSelectedWorker(row.original);
                             fetchWorkerPayments(row.original.id);
-                            // We need a history modal state instead of using the single salaryModalOpen
+                            setHistoryModalOpen(true);
                         }} title={t('salaryHistory')} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
                             <Clock className="h-4 w-4" />
                         </Button>
