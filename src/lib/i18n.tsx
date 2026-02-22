@@ -163,6 +163,7 @@ const translations = {
         voyage: 'Travel',
         retoucheArticle: 'Article Rework',
         selectArticle: 'Select Article',
+        selectClient: 'Search or select a client...',
 
         // Workers
         workersTitle: 'Workers',
@@ -396,6 +397,7 @@ const translations = {
         voyage: 'Voyage',
         retoucheArticle: 'Retouche Article',
         selectArticle: 'Sélectionner un article',
+        selectClient: 'Rechercher ou sélectionner un client...',
 
         // Workers
         workersTitle: 'Ouvriers',
