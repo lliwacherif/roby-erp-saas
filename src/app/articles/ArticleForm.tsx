@@ -12,6 +12,7 @@ const schema = z.object({
     nom: z.string().min(1, 'Name is required'),
     famille_id: z.string().min(1, 'Famille is required'),
     category_id: z.string().min(1, 'Category is required'),
+    fournisseur_id: z.string().optional().or(z.literal('')),
     couleur: z.string().optional(),
     prix_achat: z.coerce.number().min(0, 'Price must be positive'),
     prix_vente_detail: z.coerce.number().min(0, 'Retail price must be positive'),
@@ -39,6 +40,7 @@ interface ArticleFormProps {
         nom: string
         famille_id: string
         category_id: string
+        fournisseur_id: string | null
         couleur: string | null
         prix_achat: number
         prix_vente_detail: number
@@ -57,6 +59,7 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
         nom: z.string().min(1, t('articleName') + ' is required'),
         famille_id: z.string().min(1, t('famille') + ' is required'),
         category_id: z.string().min(1, t('category') + ' is required'),
+        fournisseur_id: z.string().optional().or(z.literal('')),
         couleur: z.string().optional(),
         prix_achat: z.coerce.number().min(0, t('purchasePrice') + ' must be positive'),
         prix_vente_detail: z.coerce.number().min(0, t('retailPrice') + ' must be positive'),
@@ -81,6 +84,7 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
     const { currentTenant } = useTenant()
     const [familles, setFamilles] = useState<{ id: string, name: string }[]>([])
     const [categories, setCategories] = useState<{ id: string, name: string, famille_id: string }[]>([])
+    const [fournisseurs, setFournisseurs] = useState<{ id: string, nom: string }[]>([])
     const [photoFile, setPhotoFile] = useState<File | null>(null)
     const [photoPreview, setPhotoPreview] = useState<string | null>(null)
     const [photoError, setPhotoError] = useState('')
@@ -99,6 +103,7 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
             nom: initialData.nom,
             famille_id: initialData.famille_id,
             category_id: initialData.category_id,
+            fournisseur_id: initialData.fournisseur_id || '',
             couleur: initialData.couleur || '',
             prix_achat: initialData.prix_achat,
             prix_vente_detail: initialData.prix_vente_detail,
@@ -117,6 +122,9 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
 
         const { data: cData } = await supabase.from('article_categories').select('id, name, famille_id').eq('tenant_id', currentTenant.id)
         if (cData) setCategories(cData)
+
+        const { data: fourData } = await supabase.from('fournisseurs').select('id, nom').eq('tenant_id', currentTenant.id).order('nom')
+        if (fourData) setFournisseurs(fourData)
     }
 
     const filteredCategories = categories.filter(c => c.famille_id === selectedFamilleId)
@@ -158,6 +166,7 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
                 .update({
                     category_id: data.category_id,
                     famille_id: data.famille_id,
+                    fournisseur_id: data.fournisseur_id || null,
                     nom: data.nom,
                     couleur: data.couleur || null,
                     prix_achat: data.prix_achat,
@@ -176,6 +185,7 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
                 tenant_id: currentTenant.id,
                 category_id: data.category_id,
                 famille_id: data.famille_id,
+                fournisseur_id: data.fournisseur_id || null,
                 nom: data.nom,
                 couleur: data.couleur || null,
                 prix_achat: data.prix_achat,
@@ -258,6 +268,16 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
                     ))}
                 </select>
                 {errors.category_id && <p className="text-red-600 text-sm mt-1">{errors.category_id.message}</p>}
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('suppliersTitle')}</label>
+                <select {...register('fournisseur_id')} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    <option value="">{t('optionalSupplier')}</option>
+                    {fournisseurs.map(f => (
+                        <option key={f.id} value={f.id}>{f.nom}</option>
+                    ))}
+                </select>
             </div>
 
             <Input label={t('color')} {...register('couleur')} />

@@ -249,6 +249,7 @@ export type Database = {
           tenant_id: string
           famille_id: string
           category_id: string
+          fournisseur_id: string | null
           nom: string
           photo_url: string | null
           couleur: string | null
@@ -266,6 +267,7 @@ export type Database = {
           tenant_id: string
           famille_id: string
           category_id: string
+          fournisseur_id?: string | null
           nom: string
           photo_url?: string | null
           couleur?: string | null
@@ -283,6 +285,7 @@ export type Database = {
           tenant_id?: string
           famille_id?: string
           category_id?: string
+          fournisseur_id?: string | null
           nom?: string
           photo_url?: string | null
           couleur?: string | null
@@ -308,6 +311,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "article_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_fournisseur_id_fkey"
+            columns: ["fournisseur_id"]
+            isOneToOne: false
+            referencedRelation: "fournisseurs"
             referencedColumns: ["id"]
           }
         ]

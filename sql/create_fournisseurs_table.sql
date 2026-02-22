@@ -17,21 +17,19 @@ CREATE TABLE IF NOT EXISTS fournisseurs (
 ALTER TABLE fournisseurs ENABLE ROW LEVEL SECURITY;
 
 -- Policies
-CREATE POLICY "Users can view their tenant's fournisseurs"
-    ON fournisseurs FOR SELECT
-    USING (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
+DROP POLICY IF EXISTS "Users can view their tenant's fournisseurs" ON fournisseurs;
+DROP POLICY IF EXISTS "Users can insert their tenant's fournisseurs" ON fournisseurs;
+DROP POLICY IF EXISTS "Users can update their tenant's fournisseurs" ON fournisseurs;
+DROP POLICY IF EXISTS "Users can delete their tenant's fournisseurs" ON fournisseurs;
+DROP POLICY IF EXISTS "Access fournisseurs" ON fournisseurs;
+DROP POLICY IF EXISTS "Insert fournisseurs" ON fournisseurs;
+DROP POLICY IF EXISTS "Update fournisseurs" ON fournisseurs;
+DROP POLICY IF EXISTS "Delete fournisseurs" ON fournisseurs;
 
-CREATE POLICY "Users can insert their tenant's fournisseurs"
-    ON fournisseurs FOR INSERT
-    WITH CHECK (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
-
-CREATE POLICY "Users can update their tenant's fournisseurs"
-    ON fournisseurs FOR UPDATE
-    USING (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
-
-CREATE POLICY "Users can delete their tenant's fournisseurs"
-    ON fournisseurs FOR DELETE
-    USING (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
+CREATE POLICY "Access fournisseurs" ON fournisseurs FOR SELECT USING (public.is_member_of(tenant_id) OR public.is_root_user());
+CREATE POLICY "Insert fournisseurs" ON fournisseurs FOR INSERT WITH CHECK (public.is_member_of(tenant_id) OR public.is_root_user());
+CREATE POLICY "Update fournisseurs" ON fournisseurs FOR UPDATE USING (public.is_member_of(tenant_id) OR public.is_root_user());
+CREATE POLICY "Delete fournisseurs" ON fournisseurs FOR DELETE USING (public.is_member_of(tenant_id) OR public.is_root_user());
 
 -- Function for updated_at (in case it doesn't exist)
 CREATE OR REPLACE FUNCTION update_updated_at_column()

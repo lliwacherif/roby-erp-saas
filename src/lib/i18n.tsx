@@ -176,6 +176,8 @@ const translations = {
         optional: 'Optional notes...',
         isRequired: 'is required',
         invalidEmail: 'Invalid email',
+        selectSupplier: 'Select Supplier',
+        optionalSupplier: 'Select a supplier (optional)',
 
         // Workers
         workersTitle: 'Workers',
@@ -423,6 +425,8 @@ const translations = {
         optional: 'Notes optionnelles...',
         isRequired: 'est obligatoire',
         invalidEmail: 'Email invalide',
+        selectSupplier: 'Sélectionner un fournisseur',
+        optionalSupplier: 'Sélectionner un fournisseur (optionnel)',
 
         // Workers
         workersTitle: 'Ouvriers',
