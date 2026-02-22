@@ -1,7 +1,7 @@
 import { Outlet, Navigate } from 'react-router-dom'
 import { Sidebar, NavItem } from './Sidebar'
 import { Topbar } from './Topbar'
-import { Package, Warehouse, Briefcase, Receipt, Users, BarChart3, HardHat } from 'lucide-react'
+import { Package, Warehouse, Briefcase, Receipt, Users, BarChart3, HardHat, Truck } from 'lucide-react'
 import { useTenant } from '@/lib/tenant'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
@@ -38,6 +38,7 @@ export default function AppLayout() {
         { name: t('expenses'), href: '/app/depenses', icon: Receipt },
         { name: t('clients'), href: '/app/clients', icon: Users },
         { name: t('workers'), href: '/app/ouvriers', icon: HardHat },
+        { name: t('suppliersTitle'), href: '/app/fournisseurs', icon: Truck },
     ]
 
     if (loading && !timedOut) {

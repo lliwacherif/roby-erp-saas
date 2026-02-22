@@ -17,6 +17,7 @@ import KpiPage from '@/app/kpi/KpiPage'
 import ClientList from '@/app/clients/ClientList'
 import ClientForm from '@/app/clients/ClientForm'
 import ClientHistoryPage from '@/app/clients/ClientHistoryPage'
+import FournisseurPage from '@/app/fournisseurs/FournisseurPage'
 
 function App() {
   return (
@@ -54,6 +55,7 @@ function App() {
                 <Route path="clients/:id/history" element={<ClientHistoryPage />} />
                 <Route path="depenses" element={<DepensePage />} />
                 <Route path="ouvriers" element={<OuvrierPage />} />
+                <Route path="fournisseurs" element={<FournisseurPage />} />
                 <Route index element={<Navigate to="kpi" replace />} />
               </Route>
 

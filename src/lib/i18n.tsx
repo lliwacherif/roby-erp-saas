@@ -165,6 +165,16 @@ const translations = {
         selectArticle: 'Select Article',
         selectClient: 'Search or select a client...',
 
+        // Suppliers
+        suppliersTitle: 'Suppliers',
+        newSupplier: 'New Supplier',
+        editSupplier: 'Edit Supplier',
+        supplierName: 'Supplier Name',
+        fiscalId: 'Fiscal ID',
+        contact: 'Contact Person',
+        registeredSuppliers: 'registered suppliers',
+        optional: 'Optional notes...',
+
         // Workers
         workersTitle: 'Workers',
         newWorker: 'New Worker',
@@ -480,7 +490,7 @@ export type TranslationKey = keyof typeof translations.en
 interface I18nContextType {
     locale: Locale
     setLocale: (locale: Locale) => void
-    t: (key: TranslationKey) => string
+    t: (key: TranslationKey | (string & {})) => string
 }
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined)
@@ -496,8 +506,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('roby_locale', newLocale)
     }, [])
 
-    const t = useCallback((key: TranslationKey): string => {
-        return translations[locale][key] || key
+    const t = useCallback((key: TranslationKey | (string & {})): string => {
+        return (translations[locale] as any)[key] || key
     }, [locale])
 
     return (

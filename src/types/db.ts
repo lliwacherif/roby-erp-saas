@@ -147,7 +147,49 @@ export type Database = {
             referencedColumns: ["id"]
           }
         ]
-      }
+      },
+      fournisseurs: {
+        Row: {
+          id: string
+          tenant_id: string
+          nom: string
+          contact: string | null
+          immatricule_fiscale: string | null
+          telephone: string | null
+          email: string | null
+          adresse: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          nom: string
+          contact?: string | null
+          immatricule_fiscale?: string | null
+          telephone?: string | null
+          email?: string | null
+          adresse?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          nom?: string
+          contact?: string | null
+          immatricule_fiscale?: string | null
+          telephone?: string | null
+          email?: string | null
+          adresse?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      },
       famille_articles: {
         Row: {
           id: string
