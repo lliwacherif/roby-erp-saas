@@ -26,23 +26,68 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-function getCurrentPeriod() {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+function getPaymentCycle(now: Date, payDay: number) {
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+    // If today is before this month's payDay, the "current" cycle we are paying for is the PREVIOUS month's work.
+    // E.g. Today is Feb 5th, pay_day is 10th. The "current payload" is January.
+    // But we label the period by the month it is paid IN.
+
+    let cycleYear = now.getFullYear()
+    let cycleMonth = now.getMonth() + 1
+
+    if (now.getDate() < payDay) {
+        cycleMonth -= 1
+        if (cycleMonth === 0) {
+            cycleMonth = 12
+            cycleYear -= 1
+        }
+    }
+
+    return `${cycleYear}-${String(cycleMonth).padStart(2, '0')}`
+}
+
+export function getNextPaymentDate(ouvrier: Ouvrier): Date | null {
+    if (!ouvrier.pay_day) return null;
+    const now = new Date();
+    const currentDay = now.getDate();
+
+    let targetYear = now.getFullYear();
+    let targetMonth = now.getMonth();
+
+    if (currentDay > ouvrier.pay_day) {
+        // Next payment is next month
+        targetMonth += 1;
+        if (targetMonth > 11) {
+            targetMonth = 0;
+            targetYear += 1;
+        }
+    }
+
+    return new Date(targetYear, targetMonth, ouvrier.pay_day);
 }
 
 function getPaymentStatus(ouvrier: Ouvrier, payments: SalaryPayment[]): 'paid' | 'due' | 'overdue' | 'none' {
     if (!ouvrier.pay_day) return 'none'
 
-    const currentPeriod = getCurrentPeriod()
+    const now = new Date();
+    const currentPeriod = getPaymentCycle(now, ouvrier.pay_day)
     const isPaid = payments.some(p => p.ouvrier_id === ouvrier.id && p.period === currentPeriod)
+
     if (isPaid) return 'paid'
 
-    const today = new Date().getDate()
-    if (today >= ouvrier.pay_day) return 'overdue'
-    if (today === ouvrier.pay_day - 1 || today === ouvrier.pay_day) return 'due'
+    const today = now.getDate()
 
-    return 'due'
+    // If today is exactly the pay day or 1-2 days past, it's due/overdue depending on how strictly we want to define it.
+    // Let's say:
+    // Today == pay_day -> due
+    // Today > pay_day -> overdue
+    // But wait! If today > pay_day, it means the period logic above returned the CURRENT month.
+    // What if today < pay_day? Then it's NOT due yet.
+    if (today > ouvrier.pay_day) return 'overdue';
+    if (today === ouvrier.pay_day) return 'due';
+
+    return 'none';
 }
 
 export default function OuvrierPage() {
@@ -56,6 +101,7 @@ export default function OuvrierPage() {
 
     // Salary state
     const [salaryModalOpen, setSalaryModalOpen] = useState(false)
+    const [historyModalOpen, setHistoryModalOpen] = useState(false)
     const [selectedWorker, setSelectedWorker] = useState<Ouvrier | null>(null)
     const [payments, setPayments] = useState<SalaryPayment[]>([])
     const [workerPayments, setWorkerPayments] = useState<SalaryPayment[]>([])
@@ -83,12 +129,13 @@ export default function OuvrierPage() {
 
     const fetchAllPayments = async () => {
         if (!currentTenant) return
-        const currentPeriod = getCurrentPeriod()
+        // Fetch last 3 months to be safe with cross-month cycles
         const { data } = await supabase
             .from('salary_payments')
             .select('*')
             .eq('tenant_id', currentTenant.id)
-            .eq('period', currentPeriod)
+            .order('period', { ascending: false })
+            .limit(1000)
         if (data) setPayments(data as SalaryPayment[])
     }
 
@@ -164,7 +211,7 @@ export default function OuvrierPage() {
             tenant_id: currentTenant.id,
             ouvrier_id: selectedWorker.id,
             amount: selectedWorker.salaire_base,
-            period: getCurrentPeriod(),
+            period: getPaymentCycle(new Date(), selectedWorker.pay_day || 1),
             notes: paymentNote || null
         })
 
@@ -223,24 +270,59 @@ export default function OuvrierPage() {
             }
         },
         {
+            id: 'next_payment', header: t('nextPayment') || 'Next Payment',
+            cell: ({ row }) => {
+                const date = getNextPaymentDate(row.original)
+                if (!date) return <span className="text-slate-400">—</span>
+
+                // If it is due today or overdue, highlight it
+                const status = getPaymentStatus(row.original, payments)
+                const isUrgent = status === 'due' || status === 'overdue'
+
+                return (
+                    <span className={`font-medium ${isUrgent ? 'text-red-600' : 'text-slate-700'}`}>
+                        {date.toLocaleDateString()}
+                    </span>
+                )
+            }
+        },
+        {
             id: 'actions', header: t('actions'),
-            cell: ({ row }) => (
-                <div className="flex gap-1.5">
-                    <Button size="sm" variant="ghost" onClick={() => openSalaryModal(row.original)} title={t('salaryPayments')}>
-                        <Wallet className="h-3.5 w-3.5 text-blue-600" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => handleEdit(row.original)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => handleDelete(row.original.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
-                        <Trash className="h-3.5 w-3.5" />
-                    </Button>
-                </div>
-            )
+            cell: ({ row }) => {
+                const status = getPaymentStatus(row.original, payments)
+                const isPaid = status === 'paid'
+
+                return (
+                    <div className="flex items-center gap-1.5">
+                        {!isPaid && (
+                            <Button size="sm" variant="ghost" onClick={() => {
+                                setSelectedWorker(row.original);
+                                setPaymentNote('');
+                                setSalaryModalOpen(true);
+                            }} title="Mark as Paid" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
+                                <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                        )}
+                        <Button size="sm" variant="ghost" onClick={() => {
+                            setSelectedWorker(row.original);
+                            fetchWorkerPayments(row.original.id);
+                            // We need a history modal state instead of using the single salaryModalOpen
+                        }} title={t('salaryHistory')} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                            <Clock className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleEdit(row.original)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDelete(row.original.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                            <Trash className="h-3.5 w-3.5" />
+                        </Button>
+                    </div>
+                )
+            }
         }
     ]
 
-    const currentPeriod = getCurrentPeriod()
+    const currentPeriod = selectedWorker ? getPaymentCycle(new Date(), selectedWorker.pay_day || 1) : '';
     const isCurrentPeriodPaid = selectedWorker ? payments.some(p => p.ouvrier_id === selectedWorker.id && p.period === currentPeriod) : false
 
     return (
@@ -360,35 +442,39 @@ export default function OuvrierPage() {
                                 </div>
                             )}
                         </div>
+                    </div>
+                )}
+            </Modal>
 
-                        {/* Payment History */}
-                        <div>
-                            <h3 className="text-sm font-semibold text-slate-700 mb-3">{t('salaryHistory')}</h3>
-                            {workerPayments.length === 0 ? (
-                                <p className="text-xs text-slate-400 text-center py-4">{t('noPayments')}</p>
-                            ) : (
-                                <div className="space-y-2 max-h-60 overflow-y-auto">
-                                    {workerPayments.map(p => (
-                                        <div key={p.id} className="flex items-center justify-between bg-white border border-slate-200 rounded-lg p-3">
-                                            <div className="min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                                                    <span className="text-sm font-medium text-slate-900">{p.period}</span>
-                                                    <span className="text-sm font-bold text-slate-700">{Number(p.amount).toLocaleString()} DT</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 mt-0.5 ml-6">
-                                                    <span className="text-xs text-slate-400">{t('paidOn')}: {new Date(p.paid_at).toLocaleDateString()}</span>
-                                                    {p.notes && <span className="text-xs text-slate-400">· {p.notes}</span>}
-                                                </div>
+            {/* History Modal */}
+            <Modal isOpen={historyModalOpen} onClose={() => setHistoryModalOpen(false)} title={`${t('salaryHistory')} — ${selectedWorker?.name || ''}`}>
+                {selectedWorker && (
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-700 mb-3">{t('salaryHistory')}</h3>
+                        {workerPayments.length === 0 ? (
+                            <p className="text-xs text-slate-400 text-center py-4">{t('noPayments')}</p>
+                        ) : (
+                            <div className="space-y-2 max-h-60 overflow-y-auto">
+                                {workerPayments.map(p => (
+                                    <div key={p.id} className="flex items-center justify-between bg-white border border-slate-200 rounded-lg p-3">
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                                <span className="text-sm font-medium text-slate-900">{p.period}</span>
+                                                <span className="text-sm font-bold text-slate-700">{Number(p.amount).toLocaleString()} DT</span>
                                             </div>
-                                            <button onClick={() => handleDeletePayment(p.id)} className="text-slate-300 hover:text-red-500 transition-colors p-1">
-                                                <X className="h-3.5 w-3.5" />
-                                            </button>
+                                            <div className="flex items-center gap-2 mt-0.5 ml-6">
+                                                <span className="text-xs text-slate-400">{t('paidOn')}: {new Date(p.paid_at).toLocaleDateString()}</span>
+                                                {p.notes && <span className="text-xs text-slate-400">· {p.notes}</span>}
+                                            </div>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                                        <button onClick={() => handleDeletePayment(p.id)} className="text-slate-300 hover:text-red-500 transition-colors p-1">
+                                            <X className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </Modal>

@@ -188,6 +188,7 @@ const translations = {
         noPayments: 'No payments recorded.',
         paymentReminder: 'workers need to be paid',
         dayOfMonth: 'of each month',
+        nextPayment: 'Next Payment',
 
         // Services
         servicesTitle: 'Services',
@@ -422,6 +423,7 @@ const translations = {
         noPayments: 'Aucun paiement enregistré.',
         paymentReminder: 'ouvriers à payer',
         dayOfMonth: 'de chaque mois',
+        nextPayment: 'Prochain Paiement',
 
         // Services
         servicesTitle: 'Services',
