@@ -52,6 +52,8 @@ export default function ServiceForm() {
         prix_achat: number
         prix_location_min: number
         prix_location_max: number
+        prix_vente_detail: number
+        prix_vente_gros: number
         qte_on_hand: number
     }[]>([])
     const [loading, setLoading] = useState(false)
@@ -84,7 +86,7 @@ export default function ServiceForm() {
         if (!currentTenant) return
         const { data } = await supabase
             .from('articles')
-            .select('id, nom, prix_achat, prix_location_min, prix_location_max, qte_on_hand')
+            .select('id, nom, prix_achat, prix_vente_detail, prix_vente_gros, prix_location_min, prix_location_max, qte_on_hand')
             .eq('tenant_id', currentTenant.id)
             .order('nom')
         if (data) setArticles(data as any[])
@@ -94,7 +96,7 @@ export default function ServiceForm() {
         setValue(`items.${index}.article_id`, articleId)
         const article = articles.find(a => a.id === articleId)
         if (article) {
-            const defaultPrice = type === 'location' ? article.prix_location_min : article.prix_achat
+            const defaultPrice = type === 'location' ? article.prix_location_min : article.prix_vente_detail
             const isGift = Boolean(getValues(`items.${index}.is_gift`))
             setValue(`items.${index}.unit_price`, isGift ? 0 : defaultPrice)
         }
@@ -111,7 +113,7 @@ export default function ServiceForm() {
             const articleId = getValues(`items.${index}.article_id`)
             const article = articles.find(a => a.id === articleId)
             if (article) {
-                const defaultPrice = type === 'location' ? article.prix_location_min : article.prix_achat
+                const defaultPrice = type === 'location' ? article.prix_location_min : article.prix_vente_detail
                 setValue(`items.${index}.unit_price`, defaultPrice)
             }
         }
@@ -450,10 +452,10 @@ export default function ServiceForm() {
                                                 disabled={!canUseGift}
                                                 title={canUseGift ? 'Marquer cadeau (0 DT)' : 'Disponible a partir de 2 produits location'}
                                                 className={`p-2 rounded-lg transition-all ${isGift
-                                                        ? 'bg-amber-100 text-amber-700'
-                                                        : canUseGift
-                                                            ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
-                                                            : 'text-slate-300 cursor-not-allowed'
+                                                    ? 'bg-amber-100 text-amber-700'
+                                                    : canUseGift
+                                                        ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                                                        : 'text-slate-300 cursor-not-allowed'
                                                     }`}
                                             >
                                                 <Gift className="h-4 w-4" />

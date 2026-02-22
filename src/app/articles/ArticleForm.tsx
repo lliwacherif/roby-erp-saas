@@ -14,10 +14,17 @@ const schema = z.object({
     category_id: z.string().min(1, 'Category is required'),
     couleur: z.string().optional(),
     prix_achat: z.coerce.number().min(0, 'Price must be positive'),
-    prix_location_min: z.coerce.number().min(0, 'Location min must be positive'),
-    prix_location_max: z.coerce.number().min(0, 'Location max must be positive'),
+    prix_vente_detail: z.coerce.number().min(0, 'Retail price must be positive'),
+    prix_vente_gros: z.coerce.number().min(0, 'Wholesale price must be positive'),
+    prix_location_min: z.coerce.number().optional(),
+    prix_location_max: z.coerce.number().optional(),
     qte_on_hand: z.coerce.number().min(0, 'Quantity must be >= 0'),
-}).refine((data) => data.prix_location_max >= data.prix_location_min, {
+}).refine((data) => {
+    const min = data.prix_location_min || 0;
+    const max = data.prix_location_max || 0;
+    if (max > 0 && max < min) return false;
+    return true;
+}, {
     path: ['prix_location_max'],
     message: 'Location max must be >= location min',
 })
@@ -34,8 +41,10 @@ interface ArticleFormProps {
         category_id: string
         couleur: string | null
         prix_achat: number
-        prix_location_min: number
-        prix_location_max: number
+        prix_vente_detail: number
+        prix_vente_gros: number
+        prix_location_min: number | null
+        prix_location_max: number | null
         qte_on_hand: number
         photo_url: string | null
     }
@@ -50,17 +59,24 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
         category_id: z.string().min(1, t('category') + ' is required'),
         couleur: z.string().optional(),
         prix_achat: z.coerce.number().min(0, t('purchasePrice') + ' must be positive'),
-        prix_location_min: z.coerce.number().min(0, t('locationPriceMin') + ' must be positive'),
-        prix_location_max: z.coerce.number().min(0, t('locationPriceMax') + ' must be positive'),
+        prix_vente_detail: z.coerce.number().min(0, t('retailPrice') + ' must be positive'),
+        prix_vente_gros: z.coerce.number().min(0, t('wholesalePrice') + ' must be positive'),
+        prix_location_min: z.coerce.number().optional(),
+        prix_location_max: z.coerce.number().optional(),
         qte_on_hand: z.coerce.number().min(0, t('initialQty') + ' must be >= 0'),
-    }).refine((data) => data.prix_location_max >= data.prix_location_min, {
+    }).refine((data) => {
+        const min = data.prix_location_min || 0;
+        const max = data.prix_location_max || 0;
+        if (max > 0 && max < min) return false;
+        return true;
+    }, {
         path: ['prix_location_max'],
         message: t('locationPriceRangeError'),
     })
 
     const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema) as any,
-        defaultValues: { qte_on_hand: 0, prix_location_min: 0, prix_location_max: 0 }
+        defaultValues: { qte_on_hand: 0, prix_location_min: 0, prix_location_max: 0, prix_vente_detail: 0, prix_vente_gros: 0 }
     })
     const { currentTenant } = useTenant()
     const [familles, setFamilles] = useState<{ id: string, name: string }[]>([])
@@ -85,8 +101,10 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
             category_id: initialData.category_id,
             couleur: initialData.couleur || '',
             prix_achat: initialData.prix_achat,
-            prix_location_min: initialData.prix_location_min,
-            prix_location_max: initialData.prix_location_max,
+            prix_vente_detail: initialData.prix_vente_detail,
+            prix_vente_gros: initialData.prix_vente_gros,
+            prix_location_min: initialData.prix_location_min || 0,
+            prix_location_max: initialData.prix_location_max || 0,
             qte_on_hand: initialData.qte_on_hand,
         })
         setPhotoPreview(initialData.photo_url || null)
@@ -143,8 +161,10 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
                     nom: data.nom,
                     couleur: data.couleur || null,
                     prix_achat: data.prix_achat,
-                    prix_location_min: data.prix_location_min,
-                    prix_location_max: data.prix_location_max,
+                    prix_vente_detail: data.prix_vente_detail,
+                    prix_vente_gros: data.prix_vente_gros,
+                    prix_location_min: data.prix_location_min || 0,
+                    prix_location_max: data.prix_location_max || 0,
                     qte_on_hand: data.qte_on_hand,
                     updated_at: new Date().toISOString(),
                 })
@@ -159,8 +179,10 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
                 nom: data.nom,
                 couleur: data.couleur || null,
                 prix_achat: data.prix_achat,
-                prix_location_min: data.prix_location_min,
-                prix_location_max: data.prix_location_max,
+                prix_vente_detail: data.prix_vente_detail,
+                prix_vente_gros: data.prix_vente_gros,
+                prix_location_min: data.prix_location_min || 0,
+                prix_location_max: data.prix_location_max || 0,
                 qte_on_hand: data.qte_on_hand
             }).select('id').single()
             dbError = error
@@ -235,6 +257,10 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
             <Input label={t('color')} {...register('couleur')} />
             <Input label={t('initialQty')} type="number" {...register('qte_on_hand')} error={errors.qte_on_hand?.message} />
             <Input label={t('purchasePrice')} type="number" step="0.01" {...register('prix_achat')} error={errors.prix_achat?.message} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input label={t('retailPrice')} type="number" step="0.01" {...register('prix_vente_detail')} error={errors.prix_vente_detail?.message} />
+                <Input label={t('wholesalePrice')} type="number" step="0.01" {...register('prix_vente_gros')} error={errors.prix_vente_gros?.message} />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <Input label={t('locationPriceMin')} type="number" step="0.01" {...register('prix_location_min')} error={errors.prix_location_min?.message} />
                 <Input label={t('locationPriceMax')} type="number" step="0.01" {...register('prix_location_max')} error={errors.prix_location_max?.message} />

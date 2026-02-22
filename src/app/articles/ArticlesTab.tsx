@@ -149,6 +149,8 @@ export default function ArticlesTab() {
         { accessorKey: 'couleur', header: t('color') },
         { accessorKey: 'qte_on_hand', header: t('stockQty') },
         { accessorKey: 'prix_achat', header: t('buyPrice') },
+        { accessorKey: 'prix_vente_detail', header: t('retailPrice') },
+        { accessorKey: 'prix_vente_gros', header: t('wholesalePrice') },
         { accessorKey: 'prix_location_min', header: t('locationPriceMin') },
         { accessorKey: 'prix_location_max', header: t('locationPriceMax') },
         {
