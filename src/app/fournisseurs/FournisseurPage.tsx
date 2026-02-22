@@ -24,11 +24,11 @@ export default function FournisseurPage() {
     const [editingId, setEditingId] = useState<string | null>(null)
 
     const schema = z.object({
-        nom: z.string().min(1, t('supplierName') || 'Name is required'),
+        nom: z.string().min(1, t('supplierName') + ' ' + t('isRequired')),
         contact: z.string().optional().or(z.literal('')),
-        immatricule_fiscale: z.string().min(1, t('fiscalId') || 'Fiscal ID is required'),
+        immatricule_fiscale: z.string().min(1, t('fiscalId') + ' ' + t('isRequired')),
         telephone: z.string().optional().or(z.literal('')),
-        email: z.string().email('Invalid email').optional().or(z.literal('')),
+        email: z.string().email(t('invalidEmail')).optional().or(z.literal('')),
         adresse: z.string().optional().or(z.literal('')),
         notes: z.string().optional().or(z.literal('')),
     })

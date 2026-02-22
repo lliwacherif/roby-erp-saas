@@ -174,6 +174,8 @@ const translations = {
         contact: 'Contact Person',
         registeredSuppliers: 'registered suppliers',
         optional: 'Optional notes...',
+        isRequired: 'is required',
+        invalidEmail: 'Invalid email',
 
         // Workers
         workersTitle: 'Workers',
@@ -409,6 +411,18 @@ const translations = {
         retoucheArticle: 'Retouche Article',
         selectArticle: 'Sélectionner un article',
         selectClient: 'Rechercher ou sélectionner un client...',
+
+        // Suppliers
+        suppliersTitle: 'Fournisseurs',
+        newSupplier: 'Nouveau Fournisseur',
+        editSupplier: 'Modifier Fournisseur',
+        supplierName: 'Nom du Fournisseur',
+        fiscalId: 'Immatricule Fiscale',
+        contact: 'Personne à Contacter',
+        registeredSuppliers: 'fournisseurs enregistrés',
+        optional: 'Notes optionnelles...',
+        isRequired: 'est obligatoire',
+        invalidEmail: 'Email invalide',
 
         // Workers
         workersTitle: 'Ouvriers',
