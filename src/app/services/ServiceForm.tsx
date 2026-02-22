@@ -23,6 +23,7 @@ const itemSchema = z.object({
 
 const schema = z.object({
     type: z.enum(['vente', 'location']),
+    vente_type: z.enum(['detail', 'gros']).optional(),
     client_id: z.coerce.string().min(1, "Client is required"),
     discount_amount: z.coerce.number().min(0).optional(),
     items: z.array(itemSchema).min(1, "At least one item is required")
@@ -38,6 +39,7 @@ export default function ServiceForm() {
         resolver: zodResolver(schema) as any,
         defaultValues: {
             type: 'vente',
+            vente_type: 'detail',
             client_id: '',
             discount_amount: 0,
             items: [{ article_id: '', qty: 1, unit_price: 0, is_gift: false, rental_deposit: 0, rental_start: '', rental_end: '' }]
@@ -59,6 +61,7 @@ export default function ServiceForm() {
     const [loading, setLoading] = useState(false)
 
     const type = watch('type')
+    const venteType = watch('vente_type') || 'detail'
     const watchedItems = watch('items')
     const selectedLocationProducts = watchedItems?.filter((item) => Boolean(item?.article_id)).length || 0
     const canUseGift = type === 'location' && selectedLocationProducts >= 2
@@ -79,6 +82,23 @@ export default function ServiceForm() {
     }, [type, canUseGift, watchedItems, setValue, articles])
 
     useEffect(() => {
+        if (type !== 'vente' || !watchedItems?.length) return
+
+        // If they toggle vente type, we should update the prices of already selected articles
+        watchedItems.forEach((item, index) => {
+            if (item.article_id) {
+                const article = articles.find(a => a.id === item.article_id)
+                if (article) {
+                    const expectedPrice = venteType === 'gros' ? article.prix_vente_gros : article.prix_vente_detail;
+                    if (item.unit_price !== expectedPrice) {
+                        setValue(`items.${index}.unit_price`, expectedPrice)
+                    }
+                }
+            }
+        })
+    }, [venteType, type, articles, setValue])
+
+    useEffect(() => {
         if (currentTenant) fetchArticles()
     }, [currentTenant])
 
@@ -96,7 +116,9 @@ export default function ServiceForm() {
         setValue(`items.${index}.article_id`, articleId)
         const article = articles.find(a => a.id === articleId)
         if (article) {
-            const defaultPrice = type === 'location' ? article.prix_location_min : article.prix_vente_detail
+            const defaultPrice = type === 'location'
+                ? article.prix_location_min
+                : (venteType === 'gros' ? article.prix_vente_gros : article.prix_vente_detail)
             const isGift = Boolean(getValues(`items.${index}.is_gift`))
             setValue(`items.${index}.unit_price`, isGift ? 0 : defaultPrice)
         }
@@ -113,7 +135,9 @@ export default function ServiceForm() {
             const articleId = getValues(`items.${index}.article_id`)
             const article = articles.find(a => a.id === articleId)
             if (article) {
-                const defaultPrice = type === 'location' ? article.prix_location_min : article.prix_vente_detail
+                const defaultPrice = type === 'location'
+                    ? article.prix_location_min
+                    : (venteType === 'gros' ? article.prix_vente_gros : article.prix_vente_detail)
                 setValue(`items.${index}.unit_price`, defaultPrice)
             }
         }
@@ -307,6 +331,26 @@ export default function ServiceForm() {
                                         Location
                                     </label>
                                 </div>
+                                {type === 'vente' && (
+                                    <div className="mt-4">
+                                        <div className="inline-flex bg-slate-100 p-1 rounded-full border border-slate-200 shadow-inner max-w-full overflow-x-auto">
+                                            <label className={`relative flex items-center justify-center cursor-pointer px-4 sm:px-6 py-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-300 ${venteType === 'detail' ? 'bg-white text-indigo-700 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                                                <input type="radio" value="detail" {...register('vente_type')} className="sr-only" />
+                                                <div className="flex items-center gap-2 whitespace-nowrap">
+                                                    <span className={`w-2 h-2 rounded-full transition-colors ${venteType === 'detail' ? 'bg-indigo-500' : 'bg-transparent'}`}></span>
+                                                    Vente en détails
+                                                </div>
+                                            </label>
+                                            <label className={`relative flex items-center justify-center cursor-pointer px-4 sm:px-6 py-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-300 ${venteType === 'gros' ? 'bg-white text-emerald-700 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                                                <input type="radio" value="gros" {...register('vente_type')} className="sr-only" />
+                                                <div className="flex items-center gap-2 whitespace-nowrap">
+                                                    <span className={`w-2 h-2 rounded-full transition-colors ${venteType === 'gros' ? 'bg-emerald-500' : 'bg-transparent'}`}></span>
+                                                    Vente en gros
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Client */}
@@ -323,35 +367,37 @@ export default function ServiceForm() {
                                 )}
                             />
                         </div>
-                    </div>
-                </div>
+                    </div >
+                </div >
 
                 {/* ─── Section 2: Rental Details (only for location) ─── */}
-                {type === 'location' && (
-                    <div className="bg-white rounded-2xl border border-violet-200 shadow-sm overflow-hidden">
-                        <div className="px-6 py-4 bg-gradient-to-r from-violet-50 to-white border-b border-violet-100">
-                            <div className="flex items-center gap-2.5">
-                                <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-violet-100 text-violet-600">
-                                    <CalendarDays className="h-4 w-4" />
+                {
+                    type === 'location' && (
+                        <div className="bg-white rounded-2xl border border-violet-200 shadow-sm overflow-hidden">
+                            <div className="px-6 py-4 bg-gradient-to-r from-violet-50 to-white border-b border-violet-100">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-violet-100 text-violet-600">
+                                        <CalendarDays className="h-4 w-4" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-sm font-semibold text-slate-800">{t('rentalPeriod')}</h2>
+                                        <p className="text-xs text-slate-400">{t('from')} / {t('to')}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h2 className="text-sm font-semibold text-slate-800">{t('rentalPeriod')}</h2>
-                                    <p className="text-xs text-slate-400">{t('from')} / {t('to')}</p>
+                            </div>
+                            <div className="p-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="md:col-span-2 text-sm text-slate-500 self-center">
+                                        Periode de location definie par article dans chaque ligne ci-dessous.
+                                    </div>
+                                    <div className="rounded-lg border border-dashed border-violet-200 bg-violet-50/50 px-3 py-2 text-sm text-violet-700">
+                                        {t('deposit')}: {totalDeposit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DT
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="md:col-span-2 text-sm text-slate-500 self-center">
-                                    Periode de location definie par article dans chaque ligne ci-dessous.
-                                </div>
-                                <div className="rounded-lg border border-dashed border-violet-200 bg-violet-50/50 px-3 py-2 text-sm text-violet-700">
-                                    {t('deposit')}: {totalDeposit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DT
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                    )
+                }
 
                 {/* ─── Section 3: Items ─── */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -506,27 +552,29 @@ export default function ServiceForm() {
                 </div>
 
                 {/* ─── Section 4: Discount (location) ─── */}
-                {type === 'location' && (
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
-                            <h2 className="text-sm font-semibold text-slate-800">Remise</h2>
-                        </div>
-                        <div className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <Input
-                                    type="number"
-                                    min={0}
-                                    step="0.01"
-                                    label="Montant Remise (DT)"
-                                    {...register('discount_amount')}
-                                />
-                                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 self-end">
-                                    Sous-total: {subtotal.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DT
+                {
+                    type === 'location' && (
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
+                                <h2 className="text-sm font-semibold text-slate-800">Remise</h2>
+                            </div>
+                            <div className="p-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <Input
+                                        type="number"
+                                        min={0}
+                                        step="0.01"
+                                        label="Montant Remise (DT)"
+                                        {...register('discount_amount')}
+                                    />
+                                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 self-end">
+                                        Sous-total: {subtotal.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DT
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )
+                }
 
                 {/* ─── Section 5: Total & Actions ─── */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -582,7 +630,7 @@ export default function ServiceForm() {
                         </div>
                     </div>
                 </div>
-            </form>
-        </div>
+            </form >
+        </div >
     )
 }
