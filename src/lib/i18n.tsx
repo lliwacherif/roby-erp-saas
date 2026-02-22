@@ -203,6 +203,9 @@ const translations = {
         paymentReminder: 'workers need to be paid',
         dayOfMonth: 'of each month',
         nextPayment: 'Next Payment',
+        payslipTitle: 'Payslip',
+        printPayslip: 'Print Payslip',
+        employeeDetails: 'Employee Details',
 
         // Services
         servicesTitle: 'Services',
@@ -452,6 +455,9 @@ const translations = {
         paymentReminder: 'ouvriers à payer',
         dayOfMonth: 'de chaque mois',
         nextPayment: 'Prochain Paiement',
+        payslipTitle: 'Fiche de Paie',
+        printPayslip: 'Imprimer',
+        employeeDetails: 'Détails de l\'Employé',
 
         // Services
         servicesTitle: 'Services',

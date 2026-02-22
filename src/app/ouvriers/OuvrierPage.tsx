@@ -8,7 +8,8 @@ import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { useTenant } from '@/lib/tenant'
 import { useI18n } from '@/lib/i18n'
-import { Plus, Pencil, Trash, Wallet, AlertCircle, CheckCircle2, Clock, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Pencil, Trash, Wallet, AlertCircle, CheckCircle2, Clock, X, Printer } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -92,12 +93,12 @@ function getPaymentStatus(ouvrier: Ouvrier, payments: SalaryPayment[]): 'paid' |
 
 export default function OuvrierPage() {
     const [ouvriers, setOuvriers] = useState<Ouvrier[]>([])
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingId, setEditingId] = useState<string | null>(null)
     const { currentTenant } = useTenant()
     const { t } = useI18n()
+    const navigate = useNavigate()
 
     // Salary state
     const [salaryModalOpen, setSalaryModalOpen] = useState(false)
@@ -468,9 +469,18 @@ export default function OuvrierPage() {
                                                 {p.notes && <span className="text-xs text-slate-400">· {p.notes}</span>}
                                             </div>
                                         </div>
-                                        <button onClick={() => handleDeletePayment(p.id)} className="text-slate-300 hover:text-red-500 transition-colors p-1">
-                                            <X className="h-3.5 w-3.5" />
-                                        </button>
+                                        <div className="flex gap-2 isolate">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); navigate(`/app/ouvriers/payslip/${p.id}`) }}
+                                                className="text-slate-300 hover:text-blue-500 transition-colors p-1"
+                                                title={t('printPayslip') || 'Print Payslip'}
+                                            >
+                                                <Printer className="h-3.5 w-3.5" />
+                                            </button>
+                                            <button onClick={(e) => { e.stopPropagation(); handleDeletePayment(p.id) }} className="text-slate-300 hover:text-red-500 transition-colors p-1">
+                                                <X className="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>

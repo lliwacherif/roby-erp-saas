@@ -12,6 +12,7 @@ import StockPage from '@/app/stock/StockPage'
 import ServicePage from '@/app/services/ServicePage'
 import DepensePage from '@/app/depenses/DepensePage'
 import OuvrierPage from '@/app/ouvriers/OuvrierPage'
+import FichePaieBuilder from '@/app/ouvriers/FichePaieBuilder'
 import TenantListPage from '@/app/root/TenantListPage'
 import KpiPage from '@/app/kpi/KpiPage'
 import ClientList from '@/app/clients/ClientList'
@@ -55,6 +56,7 @@ function App() {
                 <Route path="clients/:id/history" element={<ClientHistoryPage />} />
                 <Route path="depenses" element={<DepensePage />} />
                 <Route path="ouvriers" element={<OuvrierPage />} />
+                <Route path="ouvriers/payslip/:id" element={<FichePaieBuilder />} />
                 <Route path="fournisseurs" element={<FournisseurPage />} />
                 <Route index element={<Navigate to="kpi" replace />} />
               </Route>
