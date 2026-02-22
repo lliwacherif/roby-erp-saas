@@ -6,7 +6,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     error?: string
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, label, error, ...props }, ref) => {
+export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, label, error, required, ...props }, ref) => {
     return (
         <div className='w-full'>
             {label && (
@@ -15,6 +15,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, labe
                     className="block text-sm font-medium text-slate-700 mb-1.5"
                 >
                     {label}
+                    {required && <span className="text-red-500 ml-1">*</span>}
                 </label>
             )}
             <input
@@ -27,6 +28,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, labe
                     error && 'border-red-300 focus:border-red-500 focus:ring-red-500/20',
                     className
                 )}
+                required={required}
                 {...props}
             />
             {error && <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">{error}</p>}

@@ -230,10 +230,13 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Input label={t('articleName')} {...register('nom')} error={errors.nom?.message} />
+            <Input label={t('articleName')} {...register('nom')} error={errors.nom?.message} required />
 
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('famille')}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('famille')}
+                    <span className="text-red-500 ml-1">*</span>
+                </label>
                 <select {...register('famille_id')} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                     <option value="">{t('selectFamille')}</option>
                     {familles.map(f => (
@@ -244,7 +247,10 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('category')}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('category')}
+                    <span className="text-red-500 ml-1">*</span>
+                </label>
                 <select {...register('category_id')} disabled={!selectedFamilleId} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100">
                     <option value="">{t('selectCategory')}</option>
                     {filteredCategories.map(c => (
@@ -255,11 +261,11 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
             </div>
 
             <Input label={t('color')} {...register('couleur')} />
-            <Input label={t('initialQty')} type="number" {...register('qte_on_hand')} error={errors.qte_on_hand?.message} />
-            <Input label={t('purchasePrice')} type="number" step="0.01" {...register('prix_achat')} error={errors.prix_achat?.message} />
+            <Input label={t('initialQty')} type="number" {...register('qte_on_hand')} error={errors.qte_on_hand?.message} required />
+            <Input label={t('purchasePrice')} type="number" step="0.01" {...register('prix_achat')} error={errors.prix_achat?.message} required />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Input label={t('retailPrice')} type="number" step="0.01" {...register('prix_vente_detail')} error={errors.prix_vente_detail?.message} />
-                <Input label={t('wholesalePrice')} type="number" step="0.01" {...register('prix_vente_gros')} error={errors.prix_vente_gros?.message} />
+                <Input label={t('retailPrice')} type="number" step="0.01" {...register('prix_vente_detail')} error={errors.prix_vente_detail?.message} required />
+                <Input label={t('wholesalePrice')} type="number" step="0.01" {...register('prix_vente_gros')} error={errors.prix_vente_gros?.message} required />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <Input label={t('locationPriceMin')} type="number" step="0.01" {...register('prix_location_min')} error={errors.prix_location_min?.message} />
