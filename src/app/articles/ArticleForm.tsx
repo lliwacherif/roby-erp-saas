@@ -174,7 +174,6 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
                     prix_vente_gros: data.prix_vente_gros,
                     prix_location_min: data.prix_location_min || 0,
                     prix_location_max: data.prix_location_max || 0,
-                    qte_on_hand: data.qte_on_hand,
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', targetArticleId)
@@ -281,7 +280,7 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
             </div>
 
             <Input label={t('color')} {...register('couleur')} />
-            <Input label={t('initialQty')} type="number" {...register('qte_on_hand')} error={errors.qte_on_hand?.message} required />
+            <Input disabled={isEditMode} label={t('initialQty')} type="number" {...register('qte_on_hand')} error={errors.qte_on_hand?.message} required />
             <Input label={t('purchasePrice')} type="number" step="0.01" {...register('prix_achat')} error={errors.prix_achat?.message} required />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <Input label={t('retailPrice')} type="number" step="0.01" {...register('prix_vente_detail')} error={errors.prix_vente_detail?.message} required />

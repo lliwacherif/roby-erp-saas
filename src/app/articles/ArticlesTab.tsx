@@ -67,8 +67,8 @@ export default function ArticlesTab() {
         if (!currentTenant) return
         setLoading(true)
         let query = supabase
-            .from('articles')
-            .select('*, famille_articles(name), article_categories(name)')
+            .from('v_stock_overview')
+            .select('*')
             .eq('tenant_id', currentTenant.id)
 
         if (filterFamille) query = query.eq('famille_id', filterFamille)
@@ -83,12 +83,7 @@ export default function ArticlesTab() {
         }
 
         if (data) {
-            const formatted = (data as any[]).map(d => ({
-                ...d,
-                famille_name: d.famille_articles?.name,
-                category_name: d.article_categories?.name
-            }))
-            setArticles(formatted)
+            setArticles(data as any[])
         }
         setLoading(false)
     }

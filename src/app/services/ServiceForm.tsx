@@ -230,18 +230,16 @@ export default function ServiceForm() {
             const { error: itemsError } = await supabase.from('service_items').insert(itemsToInsert)
             if (itemsError) throw itemsError
 
-            if (data.type === 'vente') {
-                const movementsToInsert = data.items.map(item => ({
-                    tenant_id: currentTenant.id,
-                    article_id: item.article_id,
-                    qty_delta: -item.qty,
-                    reason: `Sale #${svc.id.slice(0, 8)}`,
-                    ref_table: 'services',
-                    ref_id: svc.id
-                }))
-                const { error: moveError } = await supabase.from('stock_movements').insert(movementsToInsert)
-                if (moveError) throw moveError
-            }
+            const movementsToInsert = data.items.map(item => ({
+                tenant_id: currentTenant.id,
+                article_id: item.article_id,
+                qty_delta: -item.qty,
+                reason: `${data.type === 'vente' ? 'Sale' : 'Rental'} #${svc.id.slice(0, 8)}`,
+                ref_table: 'services',
+                ref_id: svc.id
+            }))
+            const { error: moveError } = await supabase.from('stock_movements').insert(movementsToInsert)
+            if (moveError) throw moveError
 
             navigate('/app/services')
         } catch (e: any) {
