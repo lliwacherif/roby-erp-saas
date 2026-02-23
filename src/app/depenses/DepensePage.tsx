@@ -8,7 +8,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { useTenant } from '@/lib/tenant'
 import { useI18n } from '@/lib/i18n'
-import { Plus } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -36,6 +36,7 @@ export default function DepensePage() {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [depenseToDelete, setDepenseToDelete] = useState<string | null>(null)
     const { currentTenant } = useTenant()
     const [articles, setArticles] = useState<{ id: string, nom: string }[]>([])
     const { t } = useI18n()
@@ -77,6 +78,16 @@ export default function DepensePage() {
         else alert(error.message)
     }
 
+    const confirmDelete = async () => {
+        if (!depenseToDelete) return
+        const { error } = await supabase.from('depenses').delete().eq('id', depenseToDelete)
+        if (error) alert(error.message)
+        else {
+            setDepenseToDelete(null)
+            fetchDepenses()
+        }
+    }
+
     const typeLabel = (val: string) => {
         if (val === 'depense_interne') return t('interne')
         if (val === 'voyage') return t('voyage')
@@ -100,6 +111,16 @@ export default function DepensePage() {
         },
         { accessorKey: 'spent_at', header: t('date'), cell: ({ getValue }) => new Date(getValue() as string).toLocaleDateString() },
         { accessorKey: 'articles.nom', header: t('article') },
+        {
+            id: 'actions',
+            cell: ({ row }) => (
+                <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setDepenseToDelete(row.original.id)}>
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                </div>
+            )
+        }
     ]
 
     return (
@@ -154,6 +175,18 @@ export default function DepensePage() {
                         <Button type="submit" className="w-full sm:w-auto">{t('save')}</Button>
                     </div>
                 </form>
+            </Modal>
+
+            <Modal isOpen={!!depenseToDelete} onClose={() => setDepenseToDelete(null)} title={t('confirmDelete') || 'Confirm Deletion'}>
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-600">
+                        {t('confirmDelete') || 'Are you sure you want to delete this item? This action cannot be undone.'}
+                    </p>
+                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                        <Button variant="secondary" onClick={() => setDepenseToDelete(null)}>{t('cancel') || 'Cancel'}</Button>
+                        <Button onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white">{t('delete') || 'Delete'}</Button>
+                    </div>
+                </div>
             </Modal>
         </div>
     )

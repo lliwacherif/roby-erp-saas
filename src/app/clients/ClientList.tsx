@@ -5,6 +5,7 @@ import { useI18n } from '@/lib/i18n'
 import type { Database } from '@/types/db'
 import { DataTable } from '@/components/ui/DataTable'
 import { Button } from '@/components/ui/Button'
+import { Modal } from '@/components/ui/Modal'
 import { Plus, Pencil, Trash2, User, History } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -17,6 +18,7 @@ export default function ClientList() {
     const navigate = useNavigate()
     const [clients, setClients] = useState<Client[]>([])
     const [loading, setLoading] = useState(true)
+    const [clientToDelete, setClientToDelete] = useState<string | null>(null)
 
     useEffect(() => {
         if (currentTenant) fetchClients()
@@ -36,11 +38,14 @@ export default function ClientList() {
         setLoading(false)
     }
 
-    const handleDelete = async (id: string) => {
-        if (!confirm(t('confirmDelete'))) return
-        const { error } = await supabase.from('clients').delete().eq('id', id)
+    const confirmDelete = async () => {
+        if (!clientToDelete) return
+        const { error } = await supabase.from('clients').delete().eq('id', clientToDelete)
         if (error) alert(error.message)
-        else fetchClients()
+        else {
+            setClientToDelete(null)
+            fetchClients()
+        }
     }
 
     const columns: ColumnDef<Client>[] = [
@@ -91,7 +96,7 @@ export default function ClientList() {
                     <Button variant="ghost" size="sm" onClick={() => navigate(`/app/clients/${row.original.id}`)}>
                         <Pencil className="h-4 w-4 text-slate-500" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(row.original.id)}>
+                    <Button variant="ghost" size="sm" onClick={() => setClientToDelete(row.original.id)}>
                         <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                 </div>
@@ -115,6 +120,18 @@ export default function ClientList() {
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <DataTable columns={columns} data={clients} searchKey="full_name" />
             </div>
+
+            <Modal isOpen={!!clientToDelete} onClose={() => setClientToDelete(null)} title={t('confirmDelete') || 'Confirm Deletion'}>
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-600">
+                        {t('confirmDelete') || 'Are you sure you want to delete this item? This action cannot be undone.'}
+                    </p>
+                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                        <Button variant="secondary" onClick={() => setClientToDelete(null)}>{t('cancel') || 'Cancel'}</Button>
+                        <Button onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white">{t('delete') || 'Delete'}</Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     )
 }
