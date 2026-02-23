@@ -6,7 +6,8 @@ import type { Database } from '@/types/db'
 import { DataTable } from '@/components/ui/DataTable'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
-import { Plus, Pencil, Trash2, User, History } from 'lucide-react'
+import { ClientImportModal } from './ClientImportModal'
+import { Plus, Pencil, Trash2, User, History, Download } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
 
@@ -18,7 +19,13 @@ export default function ClientList() {
     const navigate = useNavigate()
     const [clients, setClients] = useState<Client[]>([])
     const [loading, setLoading] = useState(true)
+    // Delete State
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false)
     const [clientToDelete, setClientToDelete] = useState<string | null>(null)
+    const [deleting, setDeleting] = useState(false)
+
+    // Import State
+    const [isImportOpen, setIsImportOpen] = useState(false)
 
     useEffect(() => {
         if (currentTenant) fetchClients()
@@ -108,13 +115,23 @@ export default function ClientList() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">{t('clients') || 'Clients'}</h1>
-                    <p className="text-sm text-slate-500 mt-1">{clients.length} {t('clients')?.toLowerCase() || 'clients'}</p>
+                    <h1 className="text-2xl font-bold text-slate-900">{t('clients')}</h1>
+                    <p className="text-sm text-slate-500 mt-0.5">{clients.length} {t('clients').toLowerCase()}</p>
                 </div>
-                <Button onClick={() => navigate('/app/clients/new')} className="w-full sm:w-auto">
-                    <Plus className="h-4 w-4 mr-2" />
-                    {t('newClient') || 'New Client'}
-                </Button>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <Button
+                        variant="secondary"
+                        onClick={() => setIsImportOpen(true)}
+                        className="w-full sm:w-auto bg-white"
+                    >
+                        <Download className="h-4 w-4 mr-2" />
+                        {t('importCsv')}
+                    </Button>
+                    <Button onClick={() => navigate('/app/clients/new')} className="w-full sm:w-auto">
+                        <Plus className="h-4 w-4 mr-1.5" />
+                        {t('newClient')}
+                    </Button>
+                </div>
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -132,6 +149,12 @@ export default function ClientList() {
                     </div>
                 </div>
             </Modal>
+
+            <ClientImportModal
+                isOpen={isImportOpen}
+                onClose={() => setIsImportOpen(false)}
+                onSuccess={fetchClients}
+            />
         </div>
     )
 }

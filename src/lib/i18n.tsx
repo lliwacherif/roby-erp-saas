@@ -139,6 +139,16 @@ const translations = {
         clientDetails: 'Client Details',
         clientHistory: 'Client History',
         noClientHistory: 'No service history for this client yet.',
+        importCsv: 'Import CSV',
+        importCsvTitle: 'Import Clients from CSV',
+        importCsvInstructions: 'Please upload a CSV file with the following columns. The exact spelling of the headers is required.',
+        importCsvRequired: 'Required',
+        importCsvOptional: 'Optional',
+        importCsvSuccess: 'Successfully imported {count} clients.',
+        importCsvError: 'Failed to import CSV: ',
+        downloadTemplate: 'Download CSV Template',
+        uploadFile: 'Upload CSV File',
+        csvFormatError: 'Invalid CSV format. Please ensure headers match the required structure.',
 
         // Stock
         stockOverview: 'Stock Overview',
@@ -391,6 +401,16 @@ const translations = {
         clientDetails: 'Détails du Client',
         clientHistory: 'Historique Client',
         noClientHistory: 'Aucun historique de service pour ce client pour le moment.',
+        importCsv: 'Importer CSV',
+        importCsvTitle: 'Importer des Clients via CSV',
+        importCsvInstructions: 'Veuillez télécharger un fichier CSV contenant les colonnes suivantes. L\'orthographe exacte des en-têtes est requise :',
+        importCsvRequired: 'Obligatoire',
+        importCsvOptional: 'Optionnel',
+        importCsvSuccess: 'Importation réussie de {count} clients.',
+        importCsvError: 'Échec de l\'importation CSV : ',
+        downloadTemplate: 'Télécharger le Modèle CSV',
+        uploadFile: 'Uploader le Fichier CSV',
+        csvFormatError: 'Format CSV invalide. Veuillez vérifier que les en-têtes correspondent à la structure requise.',
 
         // Stock
         stockOverview: 'Aperçu du Stock',
