@@ -94,12 +94,17 @@ export default function ClientList() {
         },
         {
             id: 'actions',
-            header: t('actions'),
             cell: ({ row }) => (
-                <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => navigate(`/app/clients/${row.original.id}/history`)}>
-                        <History className="h-4 w-4 text-blue-500" />
+                <div className="flex justify-end items-center gap-2">
+                    <Button
+                        size="sm"
+                        onClick={() => navigate(`/app/clients/${row.original.id}/history`)}
+                        className="bg-blue-100 text-blue-700 hover:bg-blue-200 hover:scale-105 transition-all shadow-sm font-medium"
+                    >
+                        <History className="h-4 w-4 mr-2" />
+                        {t('history') || 'Historique'}
                     </Button>
+                    <div className="w-px h-6 bg-slate-200 mx-1"></div>
                     <Button variant="ghost" size="sm" onClick={() => navigate(`/app/clients/${row.original.id}`)}>
                         <Pencil className="h-4 w-4 text-slate-500" />
                     </Button>
