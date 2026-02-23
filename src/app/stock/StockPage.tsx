@@ -64,10 +64,16 @@ export default function StockPage() {
         {
             id: 'history',
             cell: ({ row }) => (
-                <Button size="sm" variant="ghost" onClick={() => setSelectedArticleId(row.original.id!)}>
-                    <History className="h-4 w-4" />
-                    {t('history')}
-                </Button>
+                <div className="flex justify-end pr-4">
+                    <Button
+                        size="sm"
+                        onClick={() => setSelectedArticleId(row.original.id!)}
+                        className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 hover:scale-105 transition-all shadow-sm font-medium"
+                    >
+                        <History className="h-4 w-4 mr-2" />
+                        {t('history')}
+                    </Button>
+                </div>
             )
         }
     ]
@@ -90,39 +96,59 @@ export default function StockPage() {
             <Drawer
                 isOpen={!!selectedArticleId}
                 onClose={() => { setSelectedArticleId(null); setMovements([]); }}
-                title={t('stockHistory')}
+                title={stock.find(s => s.id === selectedArticleId)?.nom || t('stockHistory')}
             >
-                <div className="flow-root">
-                    <ul role="list" className="-mb-8">
-                        {movements.map((event, eventIdx) => (
-                            <li key={event.id}>
-                                <div className="relative pb-8">
-                                    {eventIdx !== movements.length - 1 ? (
-                                        <span className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-slate-200" aria-hidden="true" />
-                                    ) : null}
-                                    <div className="relative flex space-x-4">
-                                        <div>
-                                            <span className={`h-10 w-10 rounded-full flex items-center justify-center ring-8 ring-white text-sm font-bold ${event.qty_delta > 0 ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
-                                                }`}>
-                                                {event.qty_delta > 0 ? '+' : '−'}
-                                            </span>
-                                        </div>
-                                        <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-2">
-                                            <div>
-                                                <p className="text-sm text-slate-600">
-                                                    {event.reason} <span className="font-semibold text-slate-900">{event.qty_delta > 0 ? `+${event.qty_delta}` : event.qty_delta}</span>
-                                                </p>
-                                            </div>
-                                            <div className="whitespace-nowrap text-right text-xs text-slate-400">
-                                                <time dateTime={event.created_at}>{new Date(event.created_at).toLocaleString()}</time>
-                                            </div>
-                                        </div>
-                                    </div>
+                <div className="p-4 sm:p-6 space-y-6">
+                    {movements.map((event, eventIdx) => (
+                        <div key={event.id} className="relative flex gap-4">
+                            {/* Vertical Line Connector */}
+                            {eventIdx !== movements.length - 1 && (
+                                <div className="absolute left-6 top-12 bottom-[-24px] w-px bg-slate-200" />
+                            )}
+
+                            {/* Quantity Bubble */}
+                            <div className={`shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm z-10 font-bold text-lg
+                                ${event.qty_delta > 0
+                                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                    : 'bg-rose-100 text-rose-700 border border-rose-200'
+                                }`}
+                            >
+                                {event.qty_delta > 0 ? '+' : ''}{event.qty_delta}
+                            </div>
+
+                            {/* Info Card */}
+                            <div className="flex-1 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex justify-between items-start gap-2">
+                                    <p className="text-sm font-semibold text-slate-800 leading-tight">
+                                        {event.reason}
+                                    </p>
                                 </div>
-                            </li>
-                        ))}
-                        {movements.length === 0 && <p className="text-slate-400 text-center py-8 text-sm">{t('noMovements')}</p>}
-                    </ul>
+                                <div className="mt-2 text-xs font-medium text-slate-500">
+                                    <time dateTime={event.created_at}>
+                                        {new Date(event.created_at).toLocaleString(undefined, {
+                                            weekday: 'short',
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </time>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+
+                    {/* Empty State */}
+                    {movements.length === 0 && !loading && (
+                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                            <div className="bg-slate-50 p-4 rounded-full mb-4">
+                                <History className="h-8 w-8 text-slate-400" />
+                            </div>
+                            <p className="text-slate-600 font-medium">{t('noMovements')}</p>
+                            <p className="text-slate-400 text-sm mt-1">Aucune action n'a été effectuée sur cet article.</p>
+                        </div>
+                    )}
                 </div>
             </Drawer>
         </div>
