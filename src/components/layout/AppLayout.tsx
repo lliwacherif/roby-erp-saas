@@ -8,6 +8,7 @@ import { useI18n } from '@/lib/i18n'
 import { applyDueRentalStarts } from '@/lib/rentalStock'
 import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
+import { ChatbotWidget } from '@/components/ui/ChatbotWidget'
 
 export default function AppLayout() {
     const { currentTenant, loading } = useTenant()
@@ -117,6 +118,9 @@ export default function AppLayout() {
                         </div>
                     </main>
                 </div>
+
+                {/* Global AI Assistant */}
+                <ChatbotWidget />
             </div>
         </>
     )
