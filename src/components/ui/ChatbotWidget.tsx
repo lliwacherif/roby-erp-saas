@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { Bot, X, Send, Loader2 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import OpenAI from 'openai'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 const SYSTEM_PROMPT = `You are Roby AI, a helpful chatbot that guide users in this app, here it is the architecture of the app:
 ROBY ERP: Visual Interface Guide
@@ -198,13 +200,25 @@ export function ChatbotWidget() {
                         {messages.map((msg, idx) => (
                             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${msg.role === 'user'
-                                        ? 'bg-blue-600 text-white rounded-br-sm shadow-md'
-                                        : 'bg-white border border-slate-200 text-slate-700 rounded-bl-sm shadow-sm'
+                                    ? 'bg-blue-600 text-white rounded-br-sm shadow-md'
+                                    : 'bg-white border border-slate-200 text-slate-700 rounded-bl-sm shadow-sm'
                                     }`}>
                                     {msg.content ? (
-                                        msg.content.split('\n').map((line, i) => (
-                                            <p key={i} className={i !== 0 ? 'mt-1' : ''}>{line}</p>
-                                        ))
+                                        msg.role === 'user' ? (
+                                            msg.content.split('\n').map((line, i) => (
+                                                <p key={i} className={i !== 0 ? 'mt-1' : ''}>{line}</p>
+                                            ))
+                                        ) : (
+                                            <div className="prose prose-sm prose-slate max-w-none 
+                                                prose-p:my-1 prose-headings:my-2 prose-headings:font-bold 
+                                                prose-ul:my-1 prose-li:my-0 prose-strong:font-semibold 
+                                                prose-table:border-collapse prose-th:border prose-th:bg-slate-50 prose-th:p-1.5 prose-td:border prose-td:p-1.5"
+                                            >
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {msg.content}
+                                                </ReactMarkdown>
+                                            </div>
+                                        )
                                     ) : (
                                         isTyping && msg.role === 'assistant' && (
                                             <div className="flex items-center gap-1.5 h-5 px-1">
