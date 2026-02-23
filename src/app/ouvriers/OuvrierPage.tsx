@@ -469,16 +469,20 @@ export default function OuvrierPage() {
                                                 {p.notes && <span className="text-xs text-slate-400">· {p.notes}</span>}
                                             </div>
                                         </div>
-                                        <div className="flex gap-2 isolate">
+                                        <div className="flex gap-3 items-center isolate">
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); navigate(`/app/ouvriers/payslip/${p.id}`) }}
-                                                className="text-slate-300 hover:text-blue-500 transition-colors p-1"
+                                                className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 hover:scale-105 transition-all rounded-lg font-semibold shadow-sm"
                                                 title={t('printPayslip') || 'Print Payslip'}
                                             >
-                                                <Printer className="h-3.5 w-3.5" />
+                                                <Printer className="h-4 w-4" />
+                                                <span className="text-xs">{t('printPayslip') || 'Imprimer'}</span>
                                             </button>
-                                            <button onClick={(e) => { e.stopPropagation(); handleDeletePayment(p.id) }} className="text-slate-300 hover:text-red-500 transition-colors p-1">
-                                                <X className="h-3.5 w-3.5" />
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDeletePayment(p.id) }}
+                                                className="text-slate-400 hover:text-red-600 transition-all p-2 rounded-lg hover:bg-red-50"
+                                            >
+                                                <X className="h-4 w-4" />
                                             </button>
                                         </div>
                                     </div>
