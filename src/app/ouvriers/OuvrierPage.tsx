@@ -72,6 +72,23 @@ function getPaymentStatus(ouvrier: Ouvrier, payments: SalaryPayment[]): 'paid' |
     if (!ouvrier.pay_day) return 'none'
 
     const now = new Date();
+
+    // Calculate the most recent payday that has passed (or is today)
+    const lastPayday = new Date(now.getFullYear(), now.getMonth(), ouvrier.pay_day);
+    if (now.getDate() < ouvrier.pay_day) {
+        lastPayday.setMonth(lastPayday.getMonth() - 1);
+    }
+
+    // If the employee joined AFTER or ON the most recent payday, they are not due for payment yet
+    // Their first payment will be on the NEXT payday
+    if (ouvrier.joined_at) {
+        const joinDate = new Date(ouvrier.joined_at);
+        joinDate.setHours(0, 0, 0, 0); // Normalize to midnight
+        if (joinDate >= lastPayday) {
+            return 'none';
+        }
+    }
+
     const currentPeriod = getPaymentCycle(now, ouvrier.pay_day)
     const isPaid = payments.some(p => p.ouvrier_id === ouvrier.id && p.period === currentPeriod)
 
@@ -79,12 +96,7 @@ function getPaymentStatus(ouvrier: Ouvrier, payments: SalaryPayment[]): 'paid' |
 
     const today = now.getDate()
 
-    // If today is exactly the pay day or 1-2 days past, it's due/overdue depending on how strictly we want to define it.
-    // Let's say:
-    // Today == pay_day -> due
-    // Today > pay_day -> overdue
-    // But wait! If today > pay_day, it means the period logic above returned the CURRENT month.
-    // What if today < pay_day? Then it's NOT due yet.
+    // If today is exactly the pay day or 1-2 days past, it's due/overdue
     if (today > ouvrier.pay_day) return 'overdue';
     if (today === ouvrier.pay_day) return 'due';
 
