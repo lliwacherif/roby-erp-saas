@@ -43,6 +43,20 @@ export default function StockPage() {
         if (data) setMovements(data as Movement[])
     }
 
+    const parseMovementReason = (reason: string) => {
+        if (reason === 'initial_stock') return t('stockInitial') || 'Stock Initial'
+        if (reason === 'restock') return t('restock') || 'Réapprovisionnement'
+        if (reason === 'correction') return t('correction') || 'Correction de Stock'
+        if (reason === 'rental_start') return t('rentalStart') || 'Départ Location'
+        if (reason === 'rental_returned') return t('rentalReturned') || 'Retour Location'
+
+        if (reason.startsWith('Sale #')) return `${t('sale') || 'Vente'} ${reason.replace('Sale ', '')}`
+        if (reason.startsWith('Rental return #')) return `${t('rentalReturned') || 'Retour Location'} ${reason.replace('Rental return ', '')}`
+        if (reason.startsWith('Rental #')) return `${t('rentalStart') || 'Départ Location'} ${reason.replace('Rental ', '')}`
+
+        return reason
+    }
+
     const columns: ColumnDef<StockView>[] = [
         { accessorKey: 'nom', header: t('article') },
         { accessorKey: 'famille_name', header: t('famille') },
@@ -97,56 +111,77 @@ export default function StockPage() {
                 isOpen={!!selectedArticleId}
                 onClose={() => { setSelectedArticleId(null); setMovements([]); }}
                 title={stock.find(s => s.id === selectedArticleId)?.nom || t('stockHistory')}
+                size="2xl"
             >
-                <div className="p-4 sm:p-6 space-y-6">
-                    {movements.map((event, eventIdx) => (
-                        <div key={event.id} className="relative flex gap-4">
-                            {/* Vertical Line Connector */}
-                            {eventIdx !== movements.length - 1 && (
-                                <div className="absolute left-6 top-12 bottom-[-24px] w-px bg-slate-200" />
-                            )}
+                <div className="p-6 sm:p-8 space-y-8 bg-slate-50 min-h-full">
 
-                            {/* Quantity Bubble */}
-                            <div className={`shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm z-10 font-bold text-lg
-                                ${event.qty_delta > 0
-                                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                                    : 'bg-rose-100 text-rose-700 border border-rose-200'
-                                }`}
-                            >
-                                {event.qty_delta > 0 ? '+' : ''}{event.qty_delta}
-                            </div>
+                    {movements.length > 0 && (
+                        <div className="grid grid-cols-1 gap-4 z-10">
+                            {movements.map((event, eventIdx) => (
+                                <div key={event.id} className="relative flex gap-6 items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-100 transition-all group">
 
-                            {/* Info Card */}
-                            <div className="flex-1 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex justify-between items-start gap-2">
-                                    <p className="text-sm font-semibold text-slate-800 leading-tight">
-                                        {event.reason}
-                                    </p>
+                                    {/* Big Colorful Status Block */}
+                                    <div className={`shrink-0 w-20 h-20 rounded-2xl flex flex-col items-center justify-center shadow-inner relative z-20 border-2
+                                        ${event.qty_delta > 0
+                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100 group-hover:bg-emerald-100'
+                                            : 'bg-rose-50 text-rose-600 border-rose-100 group-hover:bg-rose-100'
+                                        }`}
+                                    >
+                                        <span className="text-sm font-medium opacity-70 mb-0.5">QTY</span>
+                                        <span className="font-black text-2xl leading-none tracking-tight">
+                                            {event.qty_delta > 0 ? '+' : ''}{event.qty_delta}
+                                        </span>
+                                    </div>
+
+                                    {/* Detailed Text Block */}
+                                    <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div className="space-y-1.5">
+                                            <p className="text-lg font-bold text-slate-800">
+                                                {parseMovementReason(event.reason)}
+                                            </p>
+
+                                            {event.ref_id && (
+                                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-mono font-medium">
+                                                    Ref: {event.ref_id.substring(0, 8)}...
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Date and Time formatting block */}
+                                        <div className="text-left sm:text-right shrink-0">
+                                            <div className="text-sm font-semibold text-slate-700 capitalize">
+                                                {new Date(event.created_at).toLocaleDateString(undefined, {
+                                                    weekday: 'short',
+                                                    day: '2-digit',
+                                                    month: 'short',
+                                                    year: 'numeric'
+                                                })}
+                                            </div>
+                                            <div className="text-sm font-medium text-slate-400 mt-0.5 flex items-center sm:justify-end gap-1.5">
+                                                <History className="h-3.5 w-3.5" />
+                                                {new Date(event.created_at).toLocaleTimeString(undefined, {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
-                                <div className="mt-2 text-xs font-medium text-slate-500">
-                                    <time dateTime={event.created_at}>
-                                        {new Date(event.created_at).toLocaleString(undefined, {
-                                            weekday: 'short',
-                                            year: 'numeric',
-                                            month: 'short',
-                                            day: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        })}
-                                    </time>
-                                </div>
-                            </div>
+                            ))}
                         </div>
-                    ))}
+                    )}
 
                     {/* Empty State */}
                     {movements.length === 0 && !loading && (
-                        <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <div className="bg-slate-50 p-4 rounded-full mb-4">
-                                <History className="h-8 w-8 text-slate-400" />
+                        <div className="flex flex-col items-center justify-center py-24 text-center">
+                            <div className="bg-white p-6 rounded-full shadow-sm mb-5 border border-slate-100 z-10">
+                                <History className="h-12 w-12 text-slate-300" />
                             </div>
-                            <p className="text-slate-600 font-medium">{t('noMovements')}</p>
-                            <p className="text-slate-400 text-sm mt-1">Aucune action n'a été effectuée sur cet article.</p>
+                            <h3 className="text-lg font-bold text-slate-800 mb-1">{t('noMovements') || 'No Activity'}</h3>
+                            <p className="text-slate-500 max-w-xs mx-auto">
+                                Ce produit n'a enregistré aucun mouvement de stock pour le moment.
+                            </p>
                         </div>
                     )}
                 </div>
