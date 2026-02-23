@@ -495,7 +495,7 @@ export type Database = {
         Row: {
           id: string
           tenant_id: string
-          type: 'depense_interne' | 'voyage' | 'retouche_article'
+          type: 'depense_interne' | 'voyage' | 'retouche_article' | 'equipment' | 'utilities' | 'marketing' | 'maintenance' | 'software' | 'insurance' | 'taxes' | 'office_supplies' | 'other'
           amount: number
           article_id: string | null
           spent_at: string
@@ -506,7 +506,7 @@ export type Database = {
         Insert: {
           id?: string
           tenant_id: string
-          type: 'depense_interne' | 'voyage' | 'retouche_article'
+          type: 'depense_interne' | 'voyage' | 'retouche_article' | 'equipment' | 'utilities' | 'marketing' | 'maintenance' | 'software' | 'insurance' | 'taxes' | 'office_supplies' | 'other'
           amount: number
           article_id?: string | null
           spent_at?: string
@@ -517,7 +517,7 @@ export type Database = {
         Update: {
           id?: string
           tenant_id?: string
-          type?: 'depense_interne' | 'voyage' | 'retouche_article'
+          type?: 'depense_interne' | 'voyage' | 'retouche_article' | 'equipment' | 'utilities' | 'marketing' | 'maintenance' | 'software' | 'insurance' | 'taxes' | 'office_supplies' | 'other'
           amount?: number
           article_id?: string | null
           spent_at?: string

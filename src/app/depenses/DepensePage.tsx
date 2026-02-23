@@ -18,7 +18,7 @@ type Depense = Database['public']['Tables']['depenses']['Row'] & {
 }
 
 const schema = z.object({
-    type: z.enum(['depense_interne', 'voyage', 'retouche_article']),
+    type: z.enum(['depense_interne', 'voyage', 'retouche_article', 'equipment', 'utilities', 'marketing', 'maintenance', 'software', 'insurance', 'taxes', 'office_supplies', 'other']),
     amount: z.coerce.number().min(0),
     label: z.string().optional(),
     description: z.string().optional(),
@@ -89,10 +89,21 @@ export default function DepensePage() {
     }
 
     const typeLabel = (val: string) => {
-        if (val === 'depense_interne') return t('interne')
-        if (val === 'voyage') return t('voyage')
-        if (val === 'retouche_article') return t('retoucheArticle')
-        return val
+        const types: Record<string, string> = {
+            'depense_interne': t('interne'),
+            'voyage': t('voyage'),
+            'retouche_article': t('retoucheArticle'),
+            'equipment': t('equipment'),
+            'utilities': t('utilities'),
+            'marketing': t('marketing'),
+            'maintenance': t('maintenance'),
+            'software': t('software'),
+            'insurance': t('insurance'),
+            'taxes': t('taxes'),
+            'office_supplies': t('officeSupplies'),
+            'other': t('other')
+        }
+        return types[val] || val
     }
 
     const columns: ColumnDef<Depense>[] = [
@@ -148,6 +159,15 @@ export default function DepensePage() {
                             <option value="depense_interne">{t('interne')}</option>
                             <option value="voyage">{t('voyage')}</option>
                             <option value="retouche_article">{t('retoucheArticle')}</option>
+                            <option value="equipment">{t('equipment')}</option>
+                            <option value="utilities">{t('utilities')}</option>
+                            <option value="marketing">{t('marketing')}</option>
+                            <option value="maintenance">{t('maintenance')}</option>
+                            <option value="software">{t('software')}</option>
+                            <option value="insurance">{t('insurance')}</option>
+                            <option value="taxes">{t('taxes')}</option>
+                            <option value="office_supplies">{t('officeSupplies')}</option>
+                            <option value="other">{t('other')}</option>
                         </select>
                     </div>
 
