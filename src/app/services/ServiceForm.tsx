@@ -155,10 +155,26 @@ export default function ServiceForm({ mode = 'location' }: { mode?: 'location' |
             for (const item of data.items) {
                 const stock = stockMap.get(item.article_id) as any
                 const article = articles.find(a => a.id === item.article_id)
-                const available = stock?.qte_on_hand ?? article?.qte_on_hand ?? 0
+                let available = stock?.qte_on_hand ?? article?.qte_on_hand ?? 0
                 if (!article) throw new Error('Article not found')
+
+                if (data.type === 'location' && item.rental_start && item.rental_end) {
+                    // Check overlapping active rentals for this specific article
+                    const { data: overlappingItems } = await supabase
+                        .from('service_items')
+                        .select('qty, rental_start, rental_end, services!inner(status)')
+                        .eq('article_id', item.article_id)
+                        .eq('services.status', 'confirmed')
+                        .lte('rental_start', item.rental_end)
+                        .gte('rental_end', item.rental_start)
+
+                    const overlappingQty = (overlappingItems || []).reduce((acc, curr) => acc + curr.qty, 0)
+                    // The available stock for this period is the total physical stock minus whatever is already reserved
+                    available = available - overlappingQty;
+                }
+
                 if (available < item.qty) {
-                    throw new Error(`Insufficient stock for ${article.nom}. Available: ${available}, Requested: ${item.qty}`)
+                    throw new Error(`Stock insuffisant pour ${article.nom}. Disponible pdt cette periode: ${available}, Demande: ${item.qty}`)
                 }
 
                 if (data.type === 'location') {
@@ -230,16 +246,18 @@ export default function ServiceForm({ mode = 'location' }: { mode?: 'location' |
             const { error: itemsError } = await supabase.from('service_items').insert(itemsToInsert)
             if (itemsError) throw itemsError
 
-            const movementsToInsert = data.items.map(item => ({
-                tenant_id: currentTenant.id,
-                article_id: item.article_id,
-                qty_delta: -item.qty,
-                reason: `${data.type === 'vente' ? 'Sale' : 'Rental'} #${svc.id.slice(0, 8)}`,
-                ref_table: 'services',
-                ref_id: svc.id
-            }))
-            const { error: moveError } = await supabase.from('stock_movements').insert(movementsToInsert)
-            if (moveError) throw moveError
+            if (data.type === 'vente') {
+                const movementsToInsert = data.items.map(item => ({
+                    tenant_id: currentTenant.id,
+                    article_id: item.article_id,
+                    qty_delta: -item.qty,
+                    reason: `Sale #${svc.id.slice(0, 8)}`,
+                    ref_table: 'services',
+                    ref_id: svc.id
+                }))
+                const { error: moveError } = await supabase.from('stock_movements').insert(movementsToInsert)
+                if (moveError) throw moveError
+            }
 
             navigate(mode === 'vente' ? '/app/ventes' : '/app/services')
         } catch (e: any) {
