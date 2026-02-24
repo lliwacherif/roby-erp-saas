@@ -62,6 +62,9 @@ export default function ServiceList({ mode }: { mode?: 'location' | 'vente' }) {
     const [selectedReturnItemId, setSelectedReturnItemId] = useState<string>('')
     const [confirming, setConfirming] = useState<string | null>(null)
 
+    // Future reservation state
+    const [isFutureErrorOpen, setIsFutureErrorOpen] = useState(false)
+
     useEffect(() => {
         if (currentTenant) {
             syncRentalState()
@@ -277,14 +280,26 @@ export default function ServiceList({ mode }: { mode?: 'location' | 'vente' }) {
         fetchServices()
     }
 
-    const handleConfirm = async (serviceId: string) => {
+    const handleConfirm = async (service: Service) => {
         if (!currentTenant) return
-        setConfirming(serviceId)
+
+        // Prevent confirming if rental_start is strictly in the future
+        if (service.rental_start) {
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            const startDate = new Date(service.rental_start)
+            if (startDate > today) {
+                setIsFutureErrorOpen(true)
+                return
+            }
+        }
+
+        setConfirming(service.id)
         try {
             const { error } = await supabase
                 .from('services')
                 .update({ status: 'confirmed' })
-                .eq('id', serviceId)
+                .eq('id', service.id)
 
             if (error) throw error
             await fetchServices()
@@ -396,7 +411,7 @@ export default function ServiceList({ mode }: { mode?: 'location' | 'vente' }) {
                             <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => handleConfirm(row.original.id)}
+                                onClick={() => handleConfirm(row.original)}
                                 disabled={confirming === row.original.id}
                                 title="Confirmer la réservation"
                             >
@@ -612,6 +627,23 @@ export default function ServiceList({ mode }: { mode?: 'location' | 'vente' }) {
                         <Button onClick={handleDelete} disabled={deleting}
                             className="w-full sm:w-auto !bg-red-600 hover:!bg-red-700 !shadow-none">
                             {deleting ? t('loading') : t('delete')}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* ── Future Reservation Error Modal ── */}
+            <Modal isOpen={isFutureErrorOpen} onClose={() => setIsFutureErrorOpen(false)} title={t('reservationFutureErrorTitle')}>
+                <div className="space-y-4">
+                    <div className="flex gap-3 p-4 bg-amber-50 rounded-xl">
+                        <Clock className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-amber-800 leading-relaxed">
+                            {t('reservationFutureErrorDesc')}
+                        </p>
+                    </div>
+                    <div className="flex justify-end pt-2">
+                        <Button onClick={() => setIsFutureErrorOpen(false)} variant="primary">
+                            {t('close')}
                         </Button>
                     </div>
                 </div>
