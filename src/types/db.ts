@@ -537,6 +537,33 @@ export type Database = {
           salaire_base: number
           joined_at: string | null
           pay_day: number | null
+          // Personal
+          date_of_birth: string | null
+          address: string | null
+          marital_status: string | null
+          children_count: number | null
+          // Professional
+          employee_id: string | null
+          job_title: string | null
+          department: string | null
+          contract_type: string | null
+          hiring_date: string | null
+          manager_name: string | null
+          work_location: string | null
+          // Salary
+          payment_method: string | null
+          bank_name: string | null
+          rib: string | null
+          // Admin
+          employment_status: string | null
+          contract_end_date: string | null
+          work_schedule: string | null
+          leave_balance: number | null
+          // Security
+          cnss_number: string | null
+          emergency_contact: string | null
+          internal_notes: string | null
+          // Timestamps
           created_at: string
           updated_at: string
         }
@@ -549,6 +576,27 @@ export type Database = {
           salaire_base: number
           joined_at?: string | null
           pay_day?: number | null
+          date_of_birth?: string | null
+          address?: string | null
+          marital_status?: string | null
+          children_count?: number | null
+          employee_id?: string | null
+          job_title?: string | null
+          department?: string | null
+          contract_type?: string | null
+          hiring_date?: string | null
+          manager_name?: string | null
+          work_location?: string | null
+          payment_method?: string | null
+          bank_name?: string | null
+          rib?: string | null
+          employment_status?: string | null
+          contract_end_date?: string | null
+          work_schedule?: string | null
+          leave_balance?: number | null
+          cnss_number?: string | null
+          emergency_contact?: string | null
+          internal_notes?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -561,10 +609,75 @@ export type Database = {
           salaire_base?: number
           joined_at?: string | null
           pay_day?: number | null
+          date_of_birth?: string | null
+          address?: string | null
+          marital_status?: string | null
+          children_count?: number | null
+          employee_id?: string | null
+          job_title?: string | null
+          department?: string | null
+          contract_type?: string | null
+          hiring_date?: string | null
+          manager_name?: string | null
+          work_location?: string | null
+          payment_method?: string | null
+          bank_name?: string | null
+          rib?: string | null
+          employment_status?: string | null
+          contract_end_date?: string | null
+          work_schedule?: string | null
+          leave_balance?: number | null
+          cnss_number?: string | null
+          emergency_contact?: string | null
+          internal_notes?: string | null
           created_at?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      ouvrier_attendance: {
+        Row: {
+          id: string
+          tenant_id: string
+          ouvrier_id: string
+          date: string
+          status: 'Present' | 'Absent' | 'Leave' | 'Late'
+          overtime_hours: number
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          ouvrier_id: string
+          date: string
+          status: 'Present' | 'Absent' | 'Leave' | 'Late'
+          overtime_hours?: number
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          ouvrier_id?: string
+          date?: string
+          status?: 'Present' | 'Absent' | 'Leave' | 'Late'
+          overtime_hours?: number
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ouvrier_attendance_ouvrier_id_fkey"
+            columns: ["ouvrier_id"]
+            isOneToOne: false
+            referencedRelation: "ouvriers"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       salary_payments: {
         Row: {
