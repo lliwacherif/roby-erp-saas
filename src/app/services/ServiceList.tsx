@@ -37,12 +37,14 @@ type ReturnCandidate = {
     stateLabel?: string
 }
 
-export default function ServiceList() {
+export default function ServiceList({ mode }: { mode?: 'location' | 'vente' }) {
     const [services, setServices] = useState<Service[]>([])
     const [loading, setLoading] = useState(true)
     const { currentTenant } = useTenant()
     const navigate = useNavigate()
     const { t } = useI18n()
+    const basePath = mode === 'vente' ? '/app/ventes' : '/app/services'
+    const pageTitle = mode === 'vente' ? t('ventes') : t('servicesTitle')
 
     // Delete state
     const [isDeleteOpen, setIsDeleteOpen] = useState(false)
@@ -67,19 +69,26 @@ export default function ServiceList() {
 
     const syncRentalState = async () => {
         if (!currentTenant) return
-        await applyDueRentalStarts(currentTenant.id)
-        await autoReturnExpired()
+        if (mode !== 'vente') {
+            await applyDueRentalStarts(currentTenant.id)
+            await autoReturnExpired()
+        }
         await fetchServices()
     }
 
     const fetchServices = async () => {
         if (!currentTenant) return
         setLoading(true)
-        const { data } = await supabase
+        const query = supabase
             .from('services')
             .select('*, clients(full_name)')
             .eq('tenant_id', currentTenant.id)
-            .order('created_at', { ascending: false })
+
+        if (mode) {
+            query.eq('type', mode)
+        }
+
+        const { data } = await query.order('created_at', { ascending: false })
 
         if (data) setServices(data as Service[])
         setLoading(false)
@@ -355,21 +364,27 @@ export default function ServiceList() {
             id: 'actions',
             cell: ({ row }) => (
                 <div className="flex gap-1.5">
+                    <Button size="sm" variant="ghost" onClick={() => navigate(`${basePath}/${row.original.id}/invoice`)}>
+                        <FileText className="h-4 w-4 text-slate-500" />
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => openDetails(row.original)}>
                         <Eye className="h-4 w-4" />
                     </Button>
-                    {row.original.type === 'location' && row.original.status === 'confirmed' && (
-                        <Button size="sm" variant="primary" onClick={() => handleReturn(row.original.id)}>
-                            <RotateCcw className="h-4 w-4" />
-                        </Button>
-                    )}
-                    <Button size="sm" variant="ghost" onClick={() => {
+                    {
+                        row.original.type === 'location' && row.original.status === 'confirmed' && (
+                            <Button size="sm" variant="primary" onClick={() => handleReturn(row.original.id)}>
+                                <RotateCcw className="h-4 w-4" />
+                            </Button>
+                        )
+                    }
+                    < Button size="sm" variant="ghost" onClick={() => {
                         setDeleteTarget(row.original)
                         setIsDeleteOpen(true)
-                    }}>
+                    }
+                    }>
                         <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                </div>
+                    </Button >
+                </div >
             )
         }
     ]
@@ -378,10 +393,10 @@ export default function ServiceList() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">{t('servicesTitle')}</h1>
-                    <p className="text-sm text-slate-500 mt-0.5">{services.length} {t('services').toLowerCase()}</p>
+                    <h1 className="text-2xl font-bold text-slate-900">{pageTitle}</h1>
+                    <p className="text-sm text-slate-500 mt-0.5">{services.length} {pageTitle?.toLowerCase()}</p>
                 </div>
-                <Button onClick={() => navigate('/app/services/new')} className="w-full sm:w-auto">
+                <Button onClick={() => navigate(`${basePath}/new`)} className="w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-1.5" />
                     {t('newService')}
                 </Button>
@@ -584,10 +599,10 @@ export default function ServiceList() {
                             <label
                                 key={item.id}
                                 className={`flex items-start gap-3 p-3 rounded-xl border transition ${!item.canReturn
-                                        ? 'border-slate-200 bg-slate-50 opacity-70 cursor-not-allowed'
-                                        : selectedReturnItemId === item.id
-                                            ? 'border-blue-500 bg-blue-50'
-                                            : 'border-slate-200 hover:border-slate-300 cursor-pointer'
+                                    ? 'border-slate-200 bg-slate-50 opacity-70 cursor-not-allowed'
+                                    : selectedReturnItemId === item.id
+                                        ? 'border-blue-500 bg-blue-50'
+                                        : 'border-slate-200 hover:border-slate-300 cursor-pointer'
                                     }`}
                             >
                                 <input

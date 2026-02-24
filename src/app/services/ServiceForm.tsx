@@ -31,14 +31,14 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-export default function ServiceForm() {
+export default function ServiceForm({ mode = 'location' }: { mode?: 'location' | 'vente' }) {
     const navigate = useNavigate()
     const { t } = useI18n()
     const isEditing = false
     const { register, control, handleSubmit, watch, setValue, getValues, formState: { errors, isSubmitting } } = useForm<FormData>({
         resolver: zodResolver(schema) as any,
         defaultValues: {
-            type: 'vente',
+            type: mode,
             vente_type: 'detail',
             client_id: '',
             discount_amount: 0,
@@ -241,7 +241,7 @@ export default function ServiceForm() {
             const { error: moveError } = await supabase.from('stock_movements').insert(movementsToInsert)
             if (moveError) throw moveError
 
-            navigate('/app/services')
+            navigate(mode === 'vente' ? '/app/ventes' : '/app/services')
         } catch (e: any) {
             alert(e.message)
         } finally {
@@ -276,7 +276,7 @@ export default function ServiceForm() {
             {/* Header */}
             <div className="flex items-center gap-4 mb-6 sm:mb-8">
                 <button
-                    onClick={() => navigate('/app/services')}
+                    onClick={() => navigate(mode === 'vente' ? '/app/ventes' : '/app/services')}
                     className="flex items-center justify-center h-10 w-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all"
                 >
                     <ArrowLeft className="h-5 w-5" />
@@ -305,51 +305,30 @@ export default function ServiceForm() {
                     <div className="p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Type Toggle */}
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">Type</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <label
-                                        className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all text-sm font-medium ${type === 'vente'
-                                            ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-                                            : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50'
-                                            }`}
-                                    >
-                                        <input type="radio" value="vente" {...register('type')} className="sr-only" />
-                                        <ShoppingBag className="h-4 w-4" />
-                                        Vente
-                                    </label>
-                                    <label
-                                        className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all text-sm font-medium ${type === 'location'
-                                            ? 'border-violet-500 bg-violet-50 text-violet-700 shadow-sm'
-                                            : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50'
-                                            }`}
-                                    >
-                                        <input type="radio" value="location" {...register('type')} className="sr-only" />
-                                        <CalendarDays className="h-4 w-4" />
-                                        Location
-                                    </label>
-                                </div>
-                                {type === 'vente' && (
-                                    <div className="mt-4">
-                                        <div className="inline-flex bg-slate-100 p-1 rounded-full border border-slate-200 shadow-inner max-w-full overflow-x-auto">
-                                            <label className={`relative flex items-center justify-center cursor-pointer px-4 sm:px-6 py-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-300 ${venteType === 'detail' ? 'bg-white text-indigo-700 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
-                                                <input type="radio" value="detail" {...register('vente_type')} className="sr-only" />
-                                                <div className="flex items-center gap-2 whitespace-nowrap">
-                                                    <span className={`w-2 h-2 rounded-full transition-colors ${venteType === 'detail' ? 'bg-indigo-500' : 'bg-transparent'}`}></span>
-                                                    Vente en détails
-                                                </div>
-                                            </label>
-                                            <label className={`relative flex items-center justify-center cursor-pointer px-4 sm:px-6 py-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-300 ${venteType === 'gros' ? 'bg-white text-emerald-700 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
-                                                <input type="radio" value="gros" {...register('vente_type')} className="sr-only" />
-                                                <div className="flex items-center gap-2 whitespace-nowrap">
-                                                    <span className={`w-2 h-2 rounded-full transition-colors ${venteType === 'gros' ? 'bg-emerald-500' : 'bg-transparent'}`}></span>
-                                                    Vente en gros
-                                                </div>
-                                            </label>
-                                        </div>
-                                    </div>
-                                )}
+                            <div className="hidden">
+                                <input type="hidden" value="vente" {...register('type')} />
+                                <input type="hidden" value="location" {...register('type')} />
                             </div>
+                            {type === 'vente' && (
+                                <div className="mt-4">
+                                    <div className="inline-flex bg-slate-100 p-1 rounded-full border border-slate-200 shadow-inner max-w-full overflow-x-auto">
+                                        <label className={`relative flex items-center justify-center cursor-pointer px-4 sm:px-6 py-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-300 ${venteType === 'detail' ? 'bg-white text-indigo-700 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                                            <input type="radio" value="detail" {...register('vente_type')} className="sr-only" />
+                                            <div className="flex items-center gap-2 whitespace-nowrap">
+                                                <span className={`w-2 h-2 rounded-full transition-colors ${venteType === 'detail' ? 'bg-indigo-500' : 'bg-transparent'}`}></span>
+                                                Vente en détails
+                                            </div>
+                                        </label>
+                                        <label className={`relative flex items-center justify-center cursor-pointer px-4 sm:px-6 py-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-300 ${venteType === 'gros' ? 'bg-white text-emerald-700 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                                            <input type="radio" value="gros" {...register('vente_type')} className="sr-only" />
+                                            <div className="flex items-center gap-2 whitespace-nowrap">
+                                                <span className={`w-2 h-2 rounded-full transition-colors ${venteType === 'gros' ? 'bg-emerald-500' : 'bg-transparent'}`}></span>
+                                                Vente en gros
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Client */}
                             <Controller
@@ -599,10 +578,16 @@ export default function ServiceForm() {
                                         </div>
                                     )}
                                     {type === 'location' && totalDeposit > 0 && (
-                                        <div>
-                                            <p className="text-xs text-slate-400 uppercase tracking-wider">{t('deposit')}</p>
-                                            <p className="text-lg font-semibold text-violet-600">{Number(totalDeposit).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} <span className="text-sm font-medium text-violet-400">DT</span></p>
-                                        </div>
+                                        <>
+                                            <div>
+                                                <p className="text-xs text-slate-400 uppercase tracking-wider">Avance (Caution)</p>
+                                                <p className="text-lg font-semibold text-violet-600">{Number(totalDeposit).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} <span className="text-sm font-medium text-violet-400">DT</span></p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-slate-400 uppercase tracking-wider font-bold text-slate-700 border-l border-slate-200 pl-4 ml-2">Reste à payer</p>
+                                                <p className="text-2xl font-bold text-red-600 border-l border-slate-200 pl-4 ml-2">{Math.max(0, total - totalDeposit).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} <span className="text-base font-medium text-red-400">DT</span></p>
+                                            </div>
+                                        </>
                                     )}
                                 </div>
                                 <p className="text-xs text-slate-400">{fields.length} article{fields.length !== 1 ? 's' : ''} • {type === 'vente' ? 'Vente' : 'Location'}</p>
@@ -612,7 +597,7 @@ export default function ServiceForm() {
                                 <Button
                                     type="button"
                                     variant="secondary"
-                                    onClick={() => navigate('/app/services')}
+                                    onClick={() => navigate(mode === 'vente' ? '/app/ventes' : '/app/services')}
                                     className="w-full sm:w-auto px-6"
                                 >
                                     {t('cancel')}

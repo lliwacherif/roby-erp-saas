@@ -49,7 +49,8 @@ function App() {
                 <Route path="articles" element={<ArticlePage />} />
                 <Route path="articles/history" element={<ArticleHistoryPage />} />
                 <Route path="stock" element={<StockPage />} />
-                <Route path="services/*" element={<ServicePage />} />
+                <Route path="ventes/*" element={<ServicePage mode="vente" />} />
+                <Route path="services/*" element={<ServicePage mode="location" />} />
                 <Route path="clients" element={<ClientList />} />
                 <Route path="clients/new" element={<ClientForm />} />
                 <Route path="clients/:id" element={<ClientForm />} />
