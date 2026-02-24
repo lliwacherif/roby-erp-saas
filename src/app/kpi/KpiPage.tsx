@@ -86,9 +86,9 @@ export default function KpiPage() {
         // Build filtered queries based on period
         let servicesQuery = supabase
             .from('services')
-            .select('id, type, total, status, created_at, clients(full_name)')
+            .select('id, type, total, status, rental_deposit, created_at, clients(full_name)')
             .eq('tenant_id', tid)
-            .eq('status', 'confirmed')
+            .in('status', ['confirmed', 'returned', 'reservee'])
             .order('created_at', { ascending: false })
 
         let depensesQuery = supabase
@@ -134,8 +134,13 @@ export default function KpiPage() {
         const stock = (stockRes.data || []) as any[]
         const ouvriers = (ouvriersRes.data || []) as any[]
 
-        const earningsVente = services.filter(s => s.type === 'vente').reduce((s, r) => s + (r.total || 0), 0)
-        const earningsLocation = services.filter(s => s.type === 'location').reduce((s, r) => s + (r.total || 0), 0)
+        const earningsVente = services.filter(s => s.type === 'vente' && s.status !== 'cancelled').reduce((s, r) => s + (r.total || 0), 0)
+        const earningsLocation = services.filter(s => s.type === 'location' && s.status !== 'cancelled').reduce((s, r) => {
+            if (r.status === 'reservee') {
+                return s + (r.rental_deposit || 0)
+            }
+            return s + (r.total || 0)
+        }, 0)
         const totalEarnings = earningsVente + earningsLocation
         const depensesTotal = depenses.reduce((s, r) => s + (r.amount || 0), 0)
         const salaryPaymentsTotal = salaryPayments.reduce((s, r) => s + (r.amount || 0), 0)
