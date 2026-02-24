@@ -9,7 +9,7 @@ import { useTenant } from '@/lib/tenant'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '@/lib/i18n'
 import { applyDueRentalStarts } from '@/lib/rentalStock'
-import { Plus, Eye, RotateCcw, Trash2, CalendarDays, User, Package, Hash, Clock, FileText, CheckCircle } from 'lucide-react'
+import { Plus, Eye, RotateCcw, Trash2, CalendarDays, User, Package, Hash, Clock, FileText, CheckCircle, Edit } from 'lucide-react'
 
 type Service = Database['public']['Tables']['services']['Row'] & {
     clients: { full_name: string } | null
@@ -391,6 +391,23 @@ export default function ServiceList({ mode }: { mode?: 'location' | 'vente' }) {
                     <Button size="sm" variant="ghost" onClick={() => openDetails(row.original)}>
                         <Eye className="h-4 w-4" />
                     </Button>
+                    {
+                        row.original.status === 'reservee' && (
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleConfirm(row.original.id)}
+                                disabled={confirming === row.original.id}
+                                title="Confirmer la réservation"
+                            >
+                                {confirming === row.original.id ? (
+                                    <div className="h-4 w-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <Edit className="h-4 w-4 text-amber-600" />
+                                )}
+                            </Button>
+                        )
+                    }
                     {
                         row.original.type === 'location' && row.original.status === 'confirmed' && (
                             <Button size="sm" variant="primary" onClick={() => handleReturn(row.original.id)}>
