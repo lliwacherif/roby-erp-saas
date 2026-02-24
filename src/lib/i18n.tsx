@@ -47,7 +47,7 @@ const translations = {
         stock: 'Stock',
         services: 'Services',
         expenses: 'Expenses',
-        workers: 'Workers',
+        workers: 'Human Resources',
         tenants: 'Tenants',
 
         // Tenant Management
@@ -317,7 +317,7 @@ const translations = {
         stock: 'Stock',
         services: 'Services',
         expenses: 'Dépenses',
-        workers: 'Ouvriers',
+        workers: 'Ressources Humaines',
         tenants: 'Locataires',
 
         // Tenant Management
@@ -468,11 +468,12 @@ const translations = {
         optionalSupplier: 'Sélectionner un fournisseur (optionnel)',
 
         // Workers
-        workersTitle: 'Ouvriers',
-        newWorker: 'Nouvel Ouvrier',
-        editWorker: 'Modifier l\'Ouvrier',
+        workersTitle: 'Ressources Humaines',
+        newWorker: 'Nouvel Employé',
+        editWorker: 'Modifier l\'Employé',
         workerName: 'Nom',
         cin: 'CIN',
+        workerPhone: 'Numéro de Téléphone',
         baseSalary: 'Salaire de base',
         joinDate: 'Date d\'embauche',
         payDay: 'Jour de paie (jour du mois)',

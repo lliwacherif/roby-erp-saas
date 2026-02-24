@@ -20,6 +20,7 @@ type SalaryPayment = Database['public']['Tables']['salary_payments']['Row']
 const schema = z.object({
     name: z.string().min(1, 'Name is required'),
     cin: z.string().min(1, 'CIN is required'),
+    phone: z.string().optional().or(z.literal('')),
     salaire_base: z.coerce.number().min(0),
     joined_at: z.string().optional().or(z.literal('')),
     pay_day: z.coerce.number().min(1).max(28).optional()
@@ -175,6 +176,7 @@ export default function OuvrierPage() {
         setEditingId(ouvrier.id)
         setValue('name', ouvrier.name)
         setValue('cin', ouvrier.cin)
+        setValue('phone', ouvrier.phone || '')
         setValue('salaire_base', ouvrier.salaire_base)
         setValue('joined_at', ouvrier.joined_at || '')
         setValue('pay_day', ouvrier.pay_day || 1)
@@ -193,6 +195,7 @@ export default function OuvrierPage() {
         const payload = {
             name: data.name,
             cin: data.cin,
+            phone: data.phone || null,
             salaire_base: data.salaire_base,
             joined_at: data.joined_at || null,
             pay_day: data.pay_day || null
@@ -250,6 +253,7 @@ export default function OuvrierPage() {
     const columns: ColumnDef<Ouvrier>[] = [
         { accessorKey: 'name', header: t('workerName') },
         { accessorKey: 'cin', header: t('cin') },
+        { accessorKey: 'phone', header: t('workerPhone') },
         {
             accessorKey: 'salaire_base', header: t('baseSalary'), cell: ({ getValue }) => (
                 <span className="font-semibold text-slate-900">{Number(getValue()).toLocaleString()} DT</span>
@@ -388,6 +392,7 @@ export default function OuvrierPage() {
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <Input label={t('workerName')} {...register('name')} error={errors.name?.message} />
                     <Input label={t('cin')} {...register('cin')} error={errors.cin?.message} />
+                    <Input label={t('workerPhone') || 'Téléphone'} {...register('phone')} error={errors.phone?.message} />
                     <Input label={t('baseSalary')} type="number" {...register('salaire_base')} error={errors.salaire_base?.message} />
                     <Input label={t('joinDate')} type="date" {...register('joined_at')} />
                     <Input label={t('payDay')} type="number" min={1} max={28} {...register('pay_day')} placeholder="1-28" />

@@ -533,6 +533,7 @@ export type Database = {
           tenant_id: string
           name: string
           cin: string
+          phone: string | null
           salaire_base: number
           joined_at: string | null
           pay_day: number | null
@@ -544,6 +545,7 @@ export type Database = {
           tenant_id: string
           name: string
           cin: string
+          phone?: string | null
           salaire_base: number
           joined_at?: string | null
           pay_day?: number | null
@@ -555,6 +557,7 @@ export type Database = {
           tenant_id?: string
           name?: string
           cin?: string
+          phone?: string | null
           salaire_base?: number
           joined_at?: string | null
           pay_day?: number | null
