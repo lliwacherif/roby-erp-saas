@@ -51,9 +51,9 @@ export function OuvrierCalendar({ ouvrierId }: OuvrierCalendarProps) {
 
         if (!error && data) {
             const attMap: Record<string, Attendance> = {}
-            data.forEach(att => {
-                attMap[att.date] = att
-            })
+                ; (data as Attendance[]).forEach(att => {
+                    attMap[att.date] = att
+                })
             setAttendances(attMap)
         }
         setLoading(false)

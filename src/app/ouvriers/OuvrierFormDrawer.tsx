@@ -52,7 +52,7 @@ const schema = z.object({
     internal_notes: z.string().optional().or(z.literal('')),
 })
 
-type FormData = z.infer<typeof schema>
+type OuvrierFormData = z.infer<typeof schema>
 
 interface OuvrierFormDrawerProps {
     isOpen: boolean
@@ -66,7 +66,7 @@ export function OuvrierFormDrawer({ isOpen, onClose, worker, onSuccess }: Ouvrie
     const { currentTenant } = useTenant()
     const [isSaving, setIsSaving] = useState(false)
 
-    const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+    const { register, handleSubmit, reset, formState: { errors } } = useForm<OuvrierFormData>({
         resolver: zodResolver(schema)
     })
 
@@ -115,7 +115,7 @@ export function OuvrierFormDrawer({ isOpen, onClose, worker, onSuccess }: Ouvrie
         }
     }, [isOpen, worker, reset])
 
-    const onSubmit = async (data: FormData) => {
+    const onSubmit = async (data: OuvrierFormData) => {
         if (!currentTenant) return
         setIsSaving(true)
 
