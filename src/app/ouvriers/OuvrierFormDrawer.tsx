@@ -67,7 +67,7 @@ export function OuvrierFormDrawer({ isOpen, onClose, worker, onSuccess }: Ouvrie
     const [isSaving, setIsSaving] = useState(false)
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm<OuvrierFormData>({
-        resolver: zodResolver(schema)
+        resolver: zodResolver(schema) as any
     })
 
     useEffect(() => {
