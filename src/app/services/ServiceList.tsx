@@ -388,22 +388,9 @@ export default function ServiceList({ mode }: { mode?: 'location' | 'vente' }) {
                     <Button size="sm" variant="ghost" onClick={() => navigate(`${basePath}/${row.original.id}/invoice`)}>
                         <FileText className="h-4 w-4 text-slate-500" />
                     </Button>
-                    {
-                        row.original.status === 'reservee' && (
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleConfirm(row.original.id)}
-                                disabled={confirming === row.original.id}
-                            >
-                                {confirming === row.original.id ? (
-                                    <div className="h-4 w-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <CheckCircle className="h-4 w-4 text-emerald-600" />
-                                )}
-                            </Button>
-                        )
-                    }
+                    <Button size="sm" variant="ghost" onClick={() => openDetails(row.original)}>
+                        <Eye className="h-4 w-4" />
+                    </Button>
                     {
                         row.original.type === 'location' && row.original.status === 'confirmed' && (
                             <Button size="sm" variant="primary" onClick={() => handleReturn(row.original.id)}>
