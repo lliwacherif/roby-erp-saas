@@ -9,7 +9,7 @@ import { useTenant } from '@/lib/tenant'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '@/lib/i18n'
 import { applyDueRentalStarts } from '@/lib/rentalStock'
-import { Plus, Eye, RotateCcw, Trash2, CalendarDays, User, Package, Hash, Clock, FileText } from 'lucide-react'
+import { Plus, Eye, RotateCcw, Trash2, CalendarDays, User, Package, Hash, Clock, FileText, CheckCircle } from 'lucide-react'
 
 type Service = Database['public']['Tables']['services']['Row'] & {
     clients: { full_name: string } | null
@@ -60,6 +60,7 @@ export default function ServiceList({ mode }: { mode?: 'location' | 'vente' }) {
     const [returnCandidates, setReturnCandidates] = useState<ReturnCandidate[]>([])
     const [returnServiceId, setReturnServiceId] = useState<string | null>(null)
     const [selectedReturnItemId, setSelectedReturnItemId] = useState<string>('')
+    const [confirming, setConfirming] = useState<string | null>(null)
 
     useEffect(() => {
         if (currentTenant) {
@@ -276,6 +277,25 @@ export default function ServiceList({ mode }: { mode?: 'location' | 'vente' }) {
         fetchServices()
     }
 
+    const handleConfirm = async (serviceId: string) => {
+        if (!currentTenant) return
+        setConfirming(serviceId)
+        try {
+            const { error } = await supabase
+                .from('services')
+                .update({ status: 'confirmed' })
+                .eq('id', serviceId)
+
+            if (error) throw error
+            await fetchServices()
+        } catch (e: any) {
+            console.error(e)
+            alert('Failed to confirm service: ' + e.message)
+        } finally {
+            setConfirming(null)
+        }
+    }
+
     const handleDelete = async () => {
         if (!deleteTarget || !currentTenant) return
         setDeleting(true)
@@ -321,6 +341,7 @@ export default function ServiceList({ mode }: { mode?: 'location' | 'vente' }) {
 
     const statusColor = (status: string) => {
         switch (status) {
+            case 'reservee': return 'bg-yellow-100 text-yellow-700'
             case 'confirmed': return 'bg-emerald-100 text-emerald-700'
             case 'returned': return 'bg-slate-100 text-slate-600'
             case 'cancelled': return 'bg-red-100 text-red-700'
@@ -367,9 +388,22 @@ export default function ServiceList({ mode }: { mode?: 'location' | 'vente' }) {
                     <Button size="sm" variant="ghost" onClick={() => navigate(`${basePath}/${row.original.id}/invoice`)}>
                         <FileText className="h-4 w-4 text-slate-500" />
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => openDetails(row.original)}>
-                        <Eye className="h-4 w-4" />
-                    </Button>
+                    {
+                        row.original.status === 'reservee' && (
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleConfirm(row.original.id)}
+                                disabled={confirming === row.original.id}
+                            >
+                                {confirming === row.original.id ? (
+                                    <div className="h-4 w-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <CheckCircle className="h-4 w-4 text-emerald-600" />
+                                )}
+                            </Button>
+                        )
+                    }
                     {
                         row.original.type === 'location' && row.original.status === 'confirmed' && (
                             <Button size="sm" variant="primary" onClick={() => handleReturn(row.original.id)}>

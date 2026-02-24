@@ -221,7 +221,7 @@ export default function ServiceForm({ mode = 'location' }: { mode?: 'location' |
                 tenant_id: currentTenant.id,
                 client_id: data.client_id,
                 type: data.type,
-                status: 'confirmed',
+                status: data.type === 'location' ? 'reservee' : 'confirmed',
                 rental_start: serviceRentalStart,
                 rental_end: serviceRentalEnd,
                 rental_deposit: computedDeposit,

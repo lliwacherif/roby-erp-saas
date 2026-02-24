@@ -397,7 +397,7 @@ export type Database = {
           tenant_id: string
           client_id: string
           type: 'location' | 'vente'
-          status: 'draft' | 'confirmed' | 'returned' | 'cancelled'
+          status: 'draft' | 'reservee' | 'confirmed' | 'returned' | 'cancelled'
           rental_start: string | null
           rental_end: string | null
           rental_deposit: number | null
@@ -411,7 +411,7 @@ export type Database = {
           tenant_id: string
           client_id: string
           type: 'location' | 'vente'
-          status?: 'draft' | 'confirmed' | 'returned' | 'cancelled'
+          status?: 'draft' | 'reservee' | 'confirmed' | 'returned' | 'cancelled'
           rental_start?: string | null
           rental_end?: string | null
           rental_deposit?: number | null
@@ -425,7 +425,7 @@ export type Database = {
           tenant_id?: string
           client_id?: string
           type?: 'location' | 'vente'
-          status?: 'draft' | 'confirmed' | 'returned' | 'cancelled'
+          status?: 'draft' | 'reservee' | 'confirmed' | 'returned' | 'cancelled'
           rental_start?: string | null
           rental_end?: string | null
           rental_deposit?: number | null
