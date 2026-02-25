@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar, NavItem } from './Sidebar'
 import { Topbar } from './Topbar'
-import { Building } from 'lucide-react'
+import { Building, Settings } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { useState } from 'react'
 import { clsx } from 'clsx'
@@ -12,6 +12,7 @@ export default function RootLayout() {
 
     const navigation: NavItem[] = [
         { name: t('tenants'), href: '/root/tenants', icon: Building },
+        { name: t('settings'), href: '/root/settings', icon: Settings },
     ]
 
     return (

@@ -14,6 +14,7 @@ import DepensePage from '@/app/depenses/DepensePage'
 import OuvrierPage from '@/app/ouvriers/OuvrierPage'
 import FichePaieBuilder from '@/app/ouvriers/FichePaieBuilder'
 import TenantListPage from '@/app/root/TenantListPage'
+import RootSettingsPage from '@/app/root/RootSettingsPage'
 import KpiPage from '@/app/kpi/KpiPage'
 import ClientList from '@/app/clients/ClientList'
 import ClientForm from '@/app/clients/ClientForm'
@@ -36,6 +37,7 @@ function App() {
                 </RequireAuth>
               }>
                 <Route path="tenants" element={<TenantListPage />} />
+                <Route path="settings" element={<RootSettingsPage />} />
                 <Route index element={<Navigate to="tenants" replace />} />
               </Route>
 

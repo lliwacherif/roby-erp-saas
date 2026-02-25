@@ -329,6 +329,17 @@ const translations = {
         selectTenant: 'Select Tenant',
         noTenants: 'No Tenants Found',
 
+        // Settings
+        settings: 'Settings',
+        changePassword: 'Change Password',
+        newPassword: 'New Password',
+        confirmPassword: 'Confirm Password',
+        passwordChanged: 'Password changed successfully.',
+        passwordMismatch: 'Passwords do not match.',
+        passwordTooShort: 'Password must be at least 6 characters long.',
+        updatePassword: 'Update Password',
+        updating: 'Updating...',
+
         // Lang
         language: 'Language',
     },
@@ -657,6 +668,17 @@ const translations = {
         // Tenant Switcher
         selectTenant: 'Sélectionner un locataire',
         noTenants: 'Aucun locataire trouvé',
+
+        // Settings
+        settings: 'Paramètres',
+        changePassword: 'Changer le mot de passe',
+        newPassword: 'Nouveau mot de passe',
+        confirmPassword: 'Confirmer le mot de passe',
+        passwordChanged: 'Mot de passe modifié avec succès.',
+        passwordMismatch: 'Les mots de passe ne correspondent pas.',
+        passwordTooShort: 'Le mot de passe doit comporter au moins 6 caractères.',
+        updatePassword: 'Mettre à jour le mot de passe',
+        updating: 'Mise à jour...',
 
         // Lang
         language: 'Langue',
