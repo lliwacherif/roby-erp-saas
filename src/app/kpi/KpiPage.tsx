@@ -13,7 +13,8 @@ import {
     ArrowDownRight,
     BarChart3,
     AlertTriangle,
-    Calendar
+    Calendar,
+    Receipt
 } from 'lucide-react'
 
 type Period = 'week' | 'month' | 'quarter' | 'year' | 'all'
@@ -62,6 +63,7 @@ interface KPIData {
     totalWorkers: number
     monthlyPayroll: number
     recentServices: { id: string; type: string; total: number; status: string; created_at: string; client_name?: string }[]
+    recentCautions: { id: string; article_name: string; client_name: string; amount: number; date: string }[]
     serviceCount: number
 }
 
@@ -101,11 +103,19 @@ export default function KpiPage() {
             .select('amount, paid_at')
             .eq('tenant_id', tid)
 
+        let cautionsQuery = supabase
+            .from('service_items')
+            .select('id, rental_deposit, created_at, articles(nom), services!inner(created_at, clients(full_name))')
+            .eq('tenant_id', tid)
+            .gt('rental_deposit', 0)
+            .order('created_at', { ascending: false })
+
         // Apply date filter unless "all time"
         if (period !== 'all') {
             servicesQuery = servicesQuery.gte('created_at', from)
             depensesQuery = depensesQuery.gte('spent_at', from)
             salaryPaymentsQuery = salaryPaymentsQuery.gte('paid_at', from)
+            cautionsQuery = cautionsQuery.gte('created_at', from)
         }
 
         const safeQuery = async (fn: () => PromiseLike<any>, fallback: any) => {
@@ -116,6 +126,7 @@ export default function KpiPage() {
             servicesRes,
             depensesRes,
             salaryPaymentsRes,
+            cautionsRes,
             stockRes,
             clientsRes,
             ouvriersRes
@@ -123,6 +134,7 @@ export default function KpiPage() {
             safeQuery(() => servicesQuery, { data: [], count: 0 }),
             safeQuery(() => depensesQuery, { data: [] }),
             safeQuery(() => salaryPaymentsQuery, { data: [] }),
+            safeQuery(() => cautionsQuery, { data: [] }),
             safeQuery(() => supabase.from('v_stock_overview').select('*').eq('tenant_id', tid), { data: [] }),
             safeQuery(() => supabase.from('clients').select('id', { count: 'exact', head: true }).eq('tenant_id', tid), { data: [], count: 0 }),
             safeQuery(() => supabase.from('ouvriers').select('salaire_base').eq('tenant_id', tid), { data: [] })
@@ -131,6 +143,7 @@ export default function KpiPage() {
         const services = (servicesRes.data || []) as any[]
         const depenses = (depensesRes.data || []) as any[]
         const salaryPayments = (salaryPaymentsRes.data || []) as any[]
+        const cautionItems = (cautionsRes.data || []) as any[]
         const stock = (stockRes.data || []) as any[]
         const ouvriers = (ouvriersRes.data || []) as any[]
 
@@ -160,6 +173,14 @@ export default function KpiPage() {
             client_name: s.clients?.full_name
         }))
 
+        const recentCautions = cautionItems.slice(0, 5).map((c: any) => ({
+            id: c.id,
+            article_name: c.articles?.nom || '—',
+            client_name: c.services?.clients?.full_name || '—',
+            amount: c.rental_deposit || 0,
+            date: c.created_at || c.services?.created_at
+        }))
+
         setData({
             totalEarnings,
             earningsVente,
@@ -173,6 +194,7 @@ export default function KpiPage() {
             totalWorkers: ouvriers.length,
             monthlyPayroll,
             recentServices,
+            recentCautions,
             serviceCount: services.length,
         })
         setLoading(false)
@@ -380,8 +402,8 @@ export default function KpiPage() {
                 </div>
             </div>
 
-            {/* ── Bottom Row: Recent Services + Low Stock ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* ── Bottom Row: Recent Services, Cautions + Low Stock ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 {/* Recent Services */}
                 <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                     <h2 className="text-lg font-semibold text-slate-900 mb-4">{t('recentServices')}</h2>
@@ -401,6 +423,34 @@ export default function KpiPage() {
                                         </div>
                                     </div>
                                     <span className="font-semibold text-slate-900 text-sm whitespace-nowrap">{fmt(svc.total)} DT</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Recent Cautions */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Receipt className="h-5 w-5 text-violet-500" />
+                        <h2 className="text-lg font-semibold text-slate-900">{t('recentCautions')}</h2>
+                    </div>
+                    {data.recentCautions.length === 0 ? (
+                        <p className="text-sm text-slate-400 text-center py-6">{t('noResults')}</p>
+                    ) : (
+                        <div className="divide-y divide-slate-100">
+                            {data.recentCautions.map(caution => (
+                                <div key={caution.id} className="flex items-center justify-between py-3">
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-medium text-slate-900 truncate">{caution.client_name || '—'}</p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-violet-100 text-violet-700 max-w-[120px] truncate">
+                                                {caution.article_name}
+                                            </span>
+                                            <span className="text-xs text-slate-400">{new Date(caution.date).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                    <span className="font-semibold text-violet-700 text-sm whitespace-nowrap">+{fmt(caution.amount)} DT</span>
                                 </div>
                             ))}
                         </div>
