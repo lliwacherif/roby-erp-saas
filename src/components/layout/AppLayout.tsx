@@ -1,7 +1,7 @@
 import { Outlet, Navigate } from 'react-router-dom'
 import { Sidebar, NavItem } from './Sidebar'
 import { Topbar } from './Topbar'
-import { Package, Warehouse, Briefcase, Receipt, Users, BarChart3, HardHat, Truck, ShoppingBag } from 'lucide-react'
+import { Package, Warehouse, Briefcase, Receipt, Users, BarChart3, HardHat, Truck, ShoppingBag, Lock } from 'lucide-react'
 import { useTenant } from '@/lib/tenant'
 import { useAuth } from '@/lib/auth'
 import { useI18n } from '@/lib/i18n'
@@ -67,6 +67,23 @@ export default function AppLayout() {
                     </div>
                     <h2 className="text-xl font-semibold text-slate-900">{t('noTenantTitle')}</h2>
                     <p className="text-slate-500 mt-2">{t('noTenantMsg')}</p>
+                    <div className="mt-6">
+                        <a href="/login" className="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors">{t('backToLogin')}</a>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    if (currentTenant.status === 'on_hold' && !profile?.is_root) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <div className="text-center bg-white rounded-2xl shadow-lg p-10 max-w-md">
+                    <div className="mx-auto h-14 w-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                        <Lock className="h-7 w-7 text-red-500" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900">{t('accountOnHoldTitle')}</h2>
+                    <p className="text-slate-500 mt-2">{t('accountOnHoldDesc')}</p>
                     <div className="mt-6">
                         <a href="/login" className="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors">{t('backToLogin')}</a>
                     </div>

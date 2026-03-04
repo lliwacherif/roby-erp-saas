@@ -39,6 +39,7 @@ export type Database = {
           name: string
           slug: string
           logo_url: string | null
+          status: 'active' | 'on_hold'
           created_by: string
           created_at: string
           updated_at: string
@@ -48,6 +49,7 @@ export type Database = {
           name: string
           slug: string
           logo_url?: string | null
+          status?: 'active' | 'on_hold'
           created_by?: string
           created_at?: string
           updated_at?: string
@@ -57,6 +59,7 @@ export type Database = {
           name?: string
           slug?: string
           logo_url?: string | null
+          status?: 'active' | 'on_hold'
           created_by?: string
           created_at?: string
           updated_at?: string

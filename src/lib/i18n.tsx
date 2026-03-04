@@ -85,6 +85,12 @@ const translations = {
         userAlreadyMember: 'This user is already a member of this tenant',
         noUserFound: 'No user found. Try entering the exact user ID (UUID).',
         multipleUsersFound: 'Multiple users found. Please use the exact user ID:',
+        stopTenant: 'Stop Tenant',
+        unstopTenant: 'Unstop Tenant',
+        confirmStopTenant: 'Are you sure you want to block access to this tenant ?',
+        confirmUnstopTenant: 'Are you sure you want to re-enable access to this tenant ?',
+        accountOnHoldTitle: 'Account on hold',
+        accountOnHoldDesc: 'Your account is on hold. Please contact your administrator for more information.',
 
         // Articles
         articleManagement: 'Article Management',
@@ -427,6 +433,12 @@ const translations = {
         userAlreadyMember: 'Cet utilisateur est déjà membre de ce locataire',
         noUserFound: 'Aucun utilisateur trouvé. Essayez l\'UUID exact.',
         multipleUsersFound: 'Plusieurs utilisateurs trouvés. Utilisez l\'UUID exact :',
+        stopTenant: 'Bloquer le locataire',
+        unstopTenant: 'Débloquer le locataire',
+        confirmStopTenant: 'Êtes-vous sûr de vouloir bloquer l\'accès à ce locataire ?',
+        confirmUnstopTenant: 'Êtes-vous sûr de vouloir réactiver l\'accès à ce locataire ?',
+        accountOnHoldTitle: 'Compte suspendu',
+        accountOnHoldDesc: 'Votre compte est suspendu. Veuillez contacter votre administrateur pour plus d\'informations.',
 
         // Articles
         articleManagement: 'Gestion des Articles',

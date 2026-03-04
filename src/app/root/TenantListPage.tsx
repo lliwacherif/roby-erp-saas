@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/auth'
 import { useTenant } from '@/lib/tenant'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '@/lib/i18n'
-import { Users, Trash2, Shield, User, Plus, Building } from 'lucide-react'
+import { Users, Trash2, Shield, User, Plus, Building, Ban, CheckCircle } from 'lucide-react'
 
 type Tenant = Database['public']['Tables']['tenants']['Row']
 
@@ -90,6 +90,21 @@ export default function TenantListPage() {
     const handleImpersonate = async (tenantId: string) => {
         await startTransition(tenantId)
         navigate('/app/articles')
+    }
+
+    const handleToggleStatus = async (tenant: Tenant) => {
+        const isStopping = tenant.status === 'active'
+        const msg = isStopping ? t('confirmStopTenant') : t('confirmUnstopTenant')
+        if (!confirm(msg)) return
+
+        try {
+            const newStatus = isStopping ? 'on_hold' : 'active'
+            const { error } = await supabase.from('tenants').update({ status: newStatus }).eq('id', tenant.id)
+            if (error) throw error
+            fetchTenants()
+        } catch (err: any) {
+            alert(err.message)
+        }
     }
 
     const resetForm = () => {
@@ -392,6 +407,17 @@ export default function TenantListPage() {
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => openLogoModal(row.original)}>
                         {t('tenantLogo')}
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleToggleStatus(row.original)}
+                        title={row.original.status === 'active' ? t('stopTenant') : t('unstopTenant')}
+                    >
+                        {row.original.status === 'active' ?
+                            <Ban className="h-4 w-4 text-orange-500" /> :
+                            <CheckCircle className="h-4 w-4 text-emerald-500" />
+                        }
                     </Button>
                 </div>
             )
