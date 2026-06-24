@@ -1,25 +1,53 @@
 -- ============================================================
--- CLEANUP: Remove any broken root user from previous attempt
--- Run this FIRST if the seed script was already executed
+-- ROBY ERP SaaS — Seed Root User
 -- ============================================================
-
-DELETE FROM auth.identities WHERE provider_id IN (
-    SELECT id::text FROM auth.users WHERE email = 'root@roby.com'
-);
-DELETE FROM public.profiles WHERE user_id IN (
-    SELECT id FROM auth.users WHERE email = 'root@roby.com'
-);
-DELETE FROM auth.users WHERE email = 'root@roby.com';
-
--- ============================================================
--- CREATE ROOT USER (compatible with self-hosted Supabase)
+-- Run this in: Supabase > SQL Editor > New Query
+--
+-- This script creates (or re-creates) the root super-admin:
+--   Email:    root@roby.com
+--   Password: root
+--
+-- The root user can:
+--   ✅ Create and manage tenants
+--   ✅ Add/remove tenant members
+--   ✅ Create new users with credentials (via root_create_tenant_user RPC)
+--   ✅ Switch into any tenant ("impersonate")
+--   ✅ Upload tenant logos
+--   ✅ Toggle tenant status (active / on_hold)
+--   ✅ Bypass ALL RLS policies (via is_root_user() function)
 -- ============================================================
 
 DO $$
 DECLARE
     new_user_id uuid := gen_random_uuid();
 BEGIN
-    -- Insert into auth.users with all required fields
+    -- ──────────────────────────────────────────────
+    -- 1. Clean up any previous root@roby.com user
+    -- ──────────────────────────────────────────────
+    -- Remove tenant memberships first (FK constraint)
+    DELETE FROM public.tenant_members
+    WHERE user_id IN (SELECT id FROM auth.users WHERE email = 'root@roby.com');
+
+    -- Remove user_tenant_settings
+    DELETE FROM public.user_tenant_settings
+    WHERE user_id IN (SELECT id FROM auth.users WHERE email = 'root@roby.com');
+
+    -- Remove identity records
+    DELETE FROM auth.identities
+    WHERE user_id IN (SELECT id FROM auth.users WHERE email = 'root@roby.com');
+
+    -- Remove profile
+    DELETE FROM public.profiles
+    WHERE user_id IN (SELECT id FROM auth.users WHERE email = 'root@roby.com');
+
+    -- Remove the auth user itself
+    DELETE FROM auth.users WHERE email = 'root@roby.com';
+
+    RAISE NOTICE '✅ Previous root@roby.com cleaned up (if existed)';
+
+    -- ──────────────────────────────────────────────
+    -- 2. Create root user in auth.users
+    -- ──────────────────────────────────────────────
     INSERT INTO auth.users (
         id,
         instance_id,
@@ -59,8 +87,8 @@ BEGIN
         'authenticated',                                       -- aud
         'authenticated',                                       -- role
         'root@roby.com',                                       -- email
-        crypt('rootroot', gen_salt('bf')),                      -- encrypted_password (min 6 chars)
-        now(),                                                 -- email_confirmed_at
+        crypt('root', gen_salt('bf')),                         -- encrypted_password  ← PASSWORD: root
+        now(),                                                 -- email_confirmed_at (auto-confirmed)
         NULL,                                                  -- invited_at
         '',                                                    -- confirmation_token
         NULL,                                                  -- confirmation_sent_at
@@ -88,7 +116,11 @@ BEGIN
         FALSE                                                  -- is_sso_user
     );
 
-    -- Create identity record (required for email login)
+    RAISE NOTICE '✅ auth.users record created';
+
+    -- ──────────────────────────────────────────────
+    -- 3. Create identity record (required for email/password login)
+    -- ──────────────────────────────────────────────
     INSERT INTO auth.identities (
         id,
         user_id,
@@ -99,29 +131,40 @@ BEGIN
         created_at,
         updated_at
     ) VALUES (
-        new_user_id,
-        new_user_id,
-        jsonb_build_object('sub', new_user_id::text, 'email', 'root@roby.com', 'email_verified', true),
-        'email',
-        new_user_id::text,
-        now(),
-        now(),
-        now()
+        new_user_id,                                           -- id
+        new_user_id,                                           -- user_id
+        jsonb_build_object(
+            'sub', new_user_id::text,
+            'email', 'root@roby.com',
+            'email_verified', true
+        ),                                                     -- identity_data
+        'email',                                               -- provider
+        new_user_id::text,                                     -- provider_id
+        now(),                                                 -- last_sign_in_at
+        now(),                                                 -- created_at
+        now()                                                  -- updated_at
     );
 
-    -- Set profile as root (the trigger should have created it)
-    UPDATE public.profiles
-    SET is_root = true, full_name = 'Root Admin'
-    WHERE user_id = new_user_id;
+    RAISE NOTICE '✅ auth.identities record created';
 
-    -- If trigger didn't fire, insert profile manually
+    -- ──────────────────────────────────────────────
+    -- 4. Create profile with is_root = TRUE
+    -- ──────────────────────────────────────────────
     INSERT INTO public.profiles (user_id, full_name, is_root)
     VALUES (new_user_id, 'Root Admin', true)
-    ON CONFLICT (user_id) DO UPDATE SET is_root = true, full_name = 'Root Admin';
+    ON CONFLICT (user_id) DO UPDATE
+        SET is_root = true, full_name = 'Root Admin';
 
-    RAISE NOTICE 'Root user created with ID: %', new_user_id;
+    RAISE NOTICE '✅ Profile created with is_root = TRUE';
+
+    -- ──────────────────────────────────────────────
+    -- Done!
+    -- ──────────────────────────────────────────────
+    RAISE NOTICE '';
+    RAISE NOTICE '══════════════════════════════════════════';
+    RAISE NOTICE '  ROOT USER CREATED SUCCESSFULLY';
+    RAISE NOTICE '  Email:    root@roby.com';
+    RAISE NOTICE '  Password: root';
+    RAISE NOTICE '  User ID:  %', new_user_id;
+    RAISE NOTICE '══════════════════════════════════════════';
 END $$;
-
--- ============================================================
--- DONE - Login with: root@roby.com / rootroot
--- ============================================================

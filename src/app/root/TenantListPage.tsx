@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/auth'
 import { useTenant } from '@/lib/tenant'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '@/lib/i18n'
-import { Users, Trash2, Shield, User, Plus, Building, Ban, CheckCircle } from 'lucide-react'
+import { Users, Trash2, Shield, User, Plus, Building, Ban, CheckCircle, Pencil } from 'lucide-react'
 
 type Tenant = Database['public']['Tables']['tenants']['Row']
 
@@ -30,6 +30,13 @@ export default function TenantListPage() {
     const [createLoading, setCreateLoading] = useState(false)
     const [tenantName, setTenantName] = useState('')
     const [tenantSlug, setTenantSlug] = useState('')
+    const [editModalOpen, setEditModalOpen] = useState(false)
+    const [editTenant, setEditTenant] = useState<Tenant | null>(null)
+    const [editTenantName, setEditTenantName] = useState('')
+    const [editTenantSlug, setEditTenantSlug] = useState('')
+    const [editTenantStatus, setEditTenantStatus] = useState<'active' | 'on_hold'>('active')
+    const [editLoading, setEditLoading] = useState(false)
+    const [editError, setEditError] = useState('')
     const [membersModalOpen, setMembersModalOpen] = useState(false)
     const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null)
     const [members, setMembers] = useState<TenantMember[]>([])
@@ -111,6 +118,64 @@ export default function TenantListPage() {
         setIsCreateOpen(false)
         setTenantName('')
         setTenantSlug('')
+    }
+
+    const openEditModal = (tenant: Tenant) => {
+        setEditTenant(tenant)
+        setEditTenantName(tenant.name)
+        setEditTenantSlug(tenant.slug)
+        setEditTenantStatus(tenant.status)
+        setEditError('')
+        setEditModalOpen(true)
+    }
+
+    const closeEditModal = () => {
+        setEditModalOpen(false)
+        setEditTenant(null)
+        setEditTenantName('')
+        setEditTenantSlug('')
+        setEditTenantStatus('active')
+        setEditError('')
+    }
+
+    const handleUpdateTenant = async () => {
+        if (!editTenant) return
+
+        const cleanName = editTenantName.trim()
+        const cleanSlug = editTenantSlug.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+
+        if (!cleanName) {
+            setEditError(`${t('tenantName')} ${t('isRequired')}`)
+            return
+        }
+
+        if (!cleanSlug) {
+            setEditError(`${t('tenantSlug')} ${t('isRequired')}`)
+            return
+        }
+
+        setEditLoading(true)
+        setEditError('')
+        try {
+            const { error } = await supabase
+                .from('tenants')
+                .update({
+                    name: cleanName,
+                    slug: cleanSlug,
+                    status: editTenantStatus,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', editTenant.id)
+
+            if (error) throw error
+
+            await fetchTenants()
+            closeEditModal()
+        } catch (err: any) {
+            setEditError(err.message || 'Failed to update tenant')
+        } finally {
+            setEditLoading(false)
+        }
     }
 
     const openLogoModal = (tenant: Tenant) => {
@@ -401,6 +466,10 @@ export default function TenantListPage() {
                     <Button size="sm" variant="secondary" onClick={() => handleImpersonate(row.original.id)}>
                         {t('switchTo')}
                     </Button>
+                    <Button size="sm" variant="ghost" onClick={() => openEditModal(row.original)} title={t('edit')}>
+                        <Pencil className="h-4 w-4" />
+                        {t('edit')}
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => openMembersModal(row.original)}>
                         <Users className="h-4 w-4" />
                         {t('members')}
@@ -501,6 +570,63 @@ export default function TenantListPage() {
                         <Button variant="secondary" onClick={resetForm} disabled={createLoading}>{t('cancel')}</Button>
                         <Button onClick={handleCreateTenant} disabled={createLoading}>
                             {createLoading ? t('creating') : t('createTenant')}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Edit Tenant Modal */}
+            <Modal isOpen={editModalOpen} onClose={closeEditModal} title={`Modifier locataire — ${editTenant?.name || ''}`}>
+                <div className="space-y-4">
+                    <Input
+                        label={t('tenantName')}
+                        value={editTenantName}
+                        onChange={e => {
+                            setEditTenantName(e.target.value)
+                            if (!editTenantSlug.trim()) {
+                                setEditTenantSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))
+                            }
+                        }}
+                        required
+                    />
+                    <Input
+                        label={t('tenantSlug')}
+                        value={editTenantSlug}
+                        onChange={e => setEditTenantSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
+                        required
+                    />
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('status')}</label>
+                        <select
+                            value={editTenantStatus}
+                            onChange={e => setEditTenantStatus(e.target.value as 'active' | 'on_hold')}
+                            className="block w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                        >
+                            <option value="active">{t('active')}</option>
+                            <option value="on_hold">{t('accountOnHoldTitle')}</option>
+                        </select>
+                    </div>
+
+                    {editTenant && (
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+                            ID: <span className="font-mono">{editTenant.id}</span>
+                            <br />
+                            {t('createdAt')}: {new Date(editTenant.created_at).toLocaleString()}
+                        </div>
+                    )}
+
+                    {editError && (
+                        <div className="bg-red-50 border border-red-100 text-red-700 text-sm px-4 py-3 rounded-xl whitespace-pre-wrap">
+                            {editError}
+                        </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-slate-100">
+                        <Button variant="secondary" onClick={closeEditModal} disabled={editLoading} className="w-full sm:w-auto">
+                            {t('cancel')}
+                        </Button>
+                        <Button onClick={handleUpdateTenant} disabled={editLoading} className="w-full sm:w-auto">
+                            {editLoading ? t('saving') : t('save')}
                         </Button>
                     </div>
                 </div>

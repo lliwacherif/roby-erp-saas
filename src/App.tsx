@@ -20,6 +20,7 @@ import ClientList from '@/app/clients/ClientList'
 import ClientForm from '@/app/clients/ClientForm'
 import ClientHistoryPage from '@/app/clients/ClientHistoryPage'
 import FournisseurPage from '@/app/fournisseurs/FournisseurPage'
+import PurchasePage from '@/app/achats/PurchasePage'
 
 function App() {
   return (
@@ -53,6 +54,7 @@ function App() {
                 <Route path="stock" element={<StockPage />} />
                 <Route path="ventes/*" element={<ServicePage mode="vente" />} />
                 <Route path="services/*" element={<ServicePage mode="location" />} />
+                <Route path="achats" element={<PurchasePage />} />
                 <Route path="clients" element={<ClientList />} />
                 <Route path="clients/new" element={<ClientForm />} />
                 <Route path="clients/:id" element={<ClientForm />} />
