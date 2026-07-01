@@ -16,6 +16,10 @@ export default function AppLayout() {
     const { t } = useI18n()
     const [timedOut, setTimedOut] = useState(false)
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+        if (typeof window === 'undefined') return false
+        return window.localStorage.getItem('roby-sidebar-collapsed') === 'true'
+    })
 
     useEffect(() => {
         if (loading) {
@@ -43,6 +47,14 @@ export default function AppLayout() {
         { name: t('workers'), href: '/app/ouvriers', icon: HardHat },
         { name: t('suppliersTitle'), href: '/app/fournisseurs', icon: Truck },
     ]
+
+    const toggleSidebarCollapsed = () => {
+        setSidebarCollapsed((value) => {
+            const next = !value
+            window.localStorage.setItem('roby-sidebar-collapsed', String(next))
+            return next
+        })
+    }
 
     if (loading && !timedOut) {
         return (
@@ -120,15 +132,27 @@ export default function AppLayout() {
                 </div>
 
                 {/* Desktop Sidebar */}
-                <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
+                <div
+                    className={clsx(
+                        'hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col transition-[width] duration-300 ease-in-out',
+                        sidebarCollapsed ? 'lg:w-20' : 'lg:w-72'
+                    )}
+                >
                     <Sidebar
                         navigation={navigation}
                         logoUrl={currentTenant.logo_url}
                         brandName={currentTenant.name}
+                        collapsed={sidebarCollapsed}
+                        onToggleCollapse={toggleSidebarCollapsed}
                     />
                 </div>
 
-                <div className="lg:pl-72">
+                <div
+                    className={clsx(
+                        'transition-[padding] duration-300 ease-in-out',
+                        sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'
+                    )}
+                >
                     <Topbar showTenantSwitcher={true} onOpenSidebar={() => setSidebarOpen(true)} />
 
                     <main className="py-6 sm:py-8">
