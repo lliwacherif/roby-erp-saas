@@ -23,13 +23,25 @@ const itemSchema = z.object({
 
 const schema = z.object({
     type: z.enum(['vente', 'location']),
-    vente_type: z.enum(['detail', 'gros']).optional(),
+    vente_type: z.enum(['detail', 'semi_gros', 'gros']).optional(),
     client_id: z.coerce.string().min(1, "Client is required"),
     discount_amount: z.coerce.number().min(0).optional(),
     items: z.array(itemSchema).min(1, "At least one item is required")
 })
 
 type FormData = z.infer<typeof schema>
+type VenteType = 'detail' | 'semi_gros' | 'gros'
+type VentePriceArticle = {
+    prix_vente_detail: number
+    prix_vente_semi_gros: number
+    prix_vente_gros: number
+}
+
+const getVenteUnitPrice = (article: VentePriceArticle, venteType: VenteType) => {
+    if (venteType === 'semi_gros') return article.prix_vente_semi_gros
+    if (venteType === 'gros') return article.prix_vente_gros
+    return article.prix_vente_detail
+}
 
 export default function ServiceForm({ mode = 'location' }: { mode?: 'location' | 'vente' }) {
     const navigate = useNavigate()
@@ -55,13 +67,14 @@ export default function ServiceForm({ mode = 'location' }: { mode?: 'location' |
         prix_location_min: number
         prix_location_max: number
         prix_vente_detail: number
+        prix_vente_semi_gros: number
         prix_vente_gros: number
         qte_on_hand: number
     }[]>([])
     const [loading, setLoading] = useState(false)
 
     const type = watch('type')
-    const venteType = watch('vente_type') || 'detail'
+    const venteType = (watch('vente_type') || 'detail') as VenteType
     const watchedItems = watch('items')
     const selectedLocationProducts = watchedItems?.filter((item) => Boolean(item?.article_id)).length || 0
     const canUseGift = type === 'location' && selectedLocationProducts >= 2
@@ -89,7 +102,7 @@ export default function ServiceForm({ mode = 'location' }: { mode?: 'location' |
             if (item.article_id) {
                 const article = articles.find(a => a.id === item.article_id)
                 if (article) {
-                    const expectedPrice = venteType === 'gros' ? article.prix_vente_gros : article.prix_vente_detail;
+                    const expectedPrice = getVenteUnitPrice(article, venteType)
                     if (item.unit_price !== expectedPrice) {
                         setValue(`items.${index}.unit_price`, expectedPrice)
                     }
@@ -106,7 +119,7 @@ export default function ServiceForm({ mode = 'location' }: { mode?: 'location' |
         if (!currentTenant) return
         const { data } = await supabase
             .from('articles')
-            .select('id, nom, prix_achat, prix_vente_detail, prix_vente_gros, prix_location_min, prix_location_max, qte_on_hand')
+            .select('id, nom, prix_achat, prix_vente_detail, prix_vente_semi_gros, prix_vente_gros, prix_location_min, prix_location_max, qte_on_hand')
             .eq('tenant_id', currentTenant.id)
             .order('nom')
         if (data) setArticles(data as any[])
@@ -118,7 +131,7 @@ export default function ServiceForm({ mode = 'location' }: { mode?: 'location' |
         if (article) {
             const defaultPrice = type === 'location'
                 ? article.prix_location_min
-                : (venteType === 'gros' ? article.prix_vente_gros : article.prix_vente_detail)
+                : getVenteUnitPrice(article, venteType)
             const isGift = Boolean(getValues(`items.${index}.is_gift`))
             setValue(`items.${index}.unit_price`, isGift ? 0 : defaultPrice)
         }
@@ -137,7 +150,7 @@ export default function ServiceForm({ mode = 'location' }: { mode?: 'location' |
             if (article) {
                 const defaultPrice = type === 'location'
                     ? article.prix_location_min
-                    : (venteType === 'gros' ? article.prix_vente_gros : article.prix_vente_detail)
+                    : getVenteUnitPrice(article, venteType)
                 setValue(`items.${index}.unit_price`, defaultPrice)
             }
         }
@@ -335,6 +348,13 @@ export default function ServiceForm({ mode = 'location' }: { mode?: 'location' |
                                             <div className="flex items-center gap-2 whitespace-nowrap">
                                                 <span className={`w-2 h-2 rounded-full transition-colors ${venteType === 'detail' ? 'bg-indigo-500' : 'bg-transparent'}`}></span>
                                                 Vente en détails
+                                            </div>
+                                        </label>
+                                        <label className={`relative flex items-center justify-center cursor-pointer px-4 sm:px-6 py-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-300 ${venteType === 'semi_gros' ? 'bg-white text-amber-700 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+                                            <input type="radio" value="semi_gros" {...register('vente_type')} className="sr-only" />
+                                            <div className="flex items-center gap-2 whitespace-nowrap">
+                                                <span className={`w-2 h-2 rounded-full transition-colors ${venteType === 'semi_gros' ? 'bg-amber-500' : 'bg-transparent'}`}></span>
+                                                Vente semi-Gros
                                             </div>
                                         </label>
                                         <label className={`relative flex items-center justify-center cursor-pointer px-4 sm:px-6 py-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-300 ${venteType === 'gros' ? 'bg-white text-emerald-700 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>

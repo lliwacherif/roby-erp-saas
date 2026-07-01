@@ -156,7 +156,7 @@ CREATE TABLE public.article_categories (
 --   add_fournisseur_id_to_articles.sql  (fournisseur_id)
 --   article_location_price_rules.sql    (prix_location_min/max)
 --   article_photo_support.sql           (photo_url)
---   update_articles_prices.sql          (prix_vente_detail, prix_vente_gros)
+--   update_articles_prices.sql          (prix_vente_detail, prix_vente_semi_gros, prix_vente_gros)
 CREATE TABLE public.articles (
     id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id         UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -168,6 +168,7 @@ CREATE TABLE public.articles (
     photo_url         TEXT,
     prix_achat        NUMERIC NOT NULL DEFAULT 0,
     prix_vente_detail DECIMAL(10,2) NOT NULL DEFAULT 0,
+    prix_vente_semi_gros DECIMAL(10,2) NOT NULL DEFAULT 0,
     prix_vente_gros   DECIMAL(10,2) NOT NULL DEFAULT 0,
     prix_location_min NUMERIC NOT NULL DEFAULT 0,
     prix_location_max NUMERIC NOT NULL DEFAULT 0,
@@ -388,6 +389,7 @@ SELECT
     fa.name  AS famille_name,
     a.prix_achat,
     a.prix_vente_detail,
+    a.prix_vente_semi_gros,
     a.prix_vente_gros,
     a.prix_location_min,
     a.prix_location_max,
@@ -411,6 +413,7 @@ GROUP BY
     fa.name,
     a.prix_achat,
     a.prix_vente_detail,
+    a.prix_vente_semi_gros,
     a.prix_vente_gros,
     a.prix_location_min,
     a.prix_location_max,

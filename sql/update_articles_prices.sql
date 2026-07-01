@@ -1,6 +1,7 @@
 -- Migration: Add retail and wholesale prices to articles table
 ALTER TABLE articles
 ADD COLUMN IF NOT EXISTS prix_vente_detail DECIMAL(10, 2) NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS prix_vente_semi_gros DECIMAL(10, 2) NOT NULL DEFAULT 0,
 ADD COLUMN IF NOT EXISTS prix_vente_gros DECIMAL(10, 2) NOT NULL DEFAULT 0;
 
 -- Also update view if necessary (recreate if view uses SELECT *)
@@ -16,6 +17,7 @@ SELECT
     f.name as famille_name,
     a.prix_achat,
     a.prix_vente_detail,
+    a.prix_vente_semi_gros,
     a.prix_vente_gros,
     a.qte_on_hand
 FROM articles a

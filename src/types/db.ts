@@ -258,6 +258,7 @@ export type Database = {
           couleur: string | null
           prix_achat: number
           prix_vente_detail: number
+          prix_vente_semi_gros: number
           prix_vente_gros: number
           prix_location_min: number
           prix_location_max: number
@@ -276,6 +277,7 @@ export type Database = {
           couleur?: string | null
           prix_achat?: number
           prix_vente_detail?: number
+          prix_vente_semi_gros?: number
           prix_vente_gros?: number
           prix_location_min?: number
           prix_location_max?: number
@@ -294,6 +296,7 @@ export type Database = {
           couleur?: string | null
           prix_achat?: number
           prix_vente_detail?: number
+          prix_vente_semi_gros?: number
           prix_vente_gros?: number
           prix_location_min?: number
           prix_location_max?: number
@@ -735,6 +738,7 @@ export type Database = {
           famille_name: string | null
           prix_achat: number
           prix_vente_detail: number
+          prix_vente_semi_gros: number
           prix_vente_gros: number
           qte_on_hand: number
         }

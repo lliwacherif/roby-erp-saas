@@ -16,6 +16,7 @@ const schema = z.object({
     couleur: z.string().optional(),
     prix_achat: z.coerce.number().min(0, 'Price must be positive'),
     prix_vente_detail: z.coerce.number().min(0, 'Retail price must be positive'),
+    prix_vente_semi_gros: z.coerce.number().min(0, 'Semi-wholesale price must be positive'),
     prix_vente_gros: z.coerce.number().min(0, 'Wholesale price must be positive'),
     prix_location_min: z.coerce.number().optional(),
     prix_location_max: z.coerce.number().optional(),
@@ -44,6 +45,7 @@ interface ArticleFormProps {
         couleur: string | null
         prix_achat: number
         prix_vente_detail: number
+        prix_vente_semi_gros: number
         prix_vente_gros: number
         prix_location_min: number | null
         prix_location_max: number | null
@@ -63,6 +65,7 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
         couleur: z.string().optional(),
         prix_achat: z.coerce.number().min(0, t('purchasePrice') + ' must be positive'),
         prix_vente_detail: z.coerce.number().min(0, t('retailPrice') + ' must be positive'),
+        prix_vente_semi_gros: z.coerce.number().min(0, t('semiWholesalePrice') + ' must be positive'),
         prix_vente_gros: z.coerce.number().min(0, t('wholesalePrice') + ' must be positive'),
         prix_location_min: z.coerce.number().optional(),
         prix_location_max: z.coerce.number().optional(),
@@ -79,7 +82,7 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
 
     const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema) as any,
-        defaultValues: { qte_on_hand: 0, prix_location_min: 0, prix_location_max: 0, prix_vente_detail: 0, prix_vente_gros: 0 }
+        defaultValues: { qte_on_hand: 0, prix_location_min: 0, prix_location_max: 0, prix_vente_detail: 0, prix_vente_semi_gros: 0, prix_vente_gros: 0 }
     })
     const { currentTenant } = useTenant()
     const [familles, setFamilles] = useState<{ id: string, name: string }[]>([])
@@ -107,6 +110,7 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
             couleur: initialData.couleur || '',
             prix_achat: initialData.prix_achat,
             prix_vente_detail: initialData.prix_vente_detail,
+            prix_vente_semi_gros: initialData.prix_vente_semi_gros ?? 0,
             prix_vente_gros: initialData.prix_vente_gros,
             prix_location_min: initialData.prix_location_min || 0,
             prix_location_max: initialData.prix_location_max || 0,
@@ -171,6 +175,7 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
                     couleur: data.couleur || null,
                     prix_achat: data.prix_achat,
                     prix_vente_detail: data.prix_vente_detail,
+                    prix_vente_semi_gros: data.prix_vente_semi_gros,
                     prix_vente_gros: data.prix_vente_gros,
                     prix_location_min: data.prix_location_min || 0,
                     prix_location_max: data.prix_location_max || 0,
@@ -189,6 +194,7 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
                 couleur: data.couleur || null,
                 prix_achat: data.prix_achat,
                 prix_vente_detail: data.prix_vente_detail,
+                prix_vente_semi_gros: data.prix_vente_semi_gros,
                 prix_vente_gros: data.prix_vente_gros,
                 prix_location_min: data.prix_location_min || 0,
                 prix_location_max: data.prix_location_max || 0,
@@ -282,8 +288,9 @@ export function ArticleForm({ onSuccess, onCancel, initialData }: ArticleFormPro
             <Input label={t('color')} {...register('couleur')} />
             <Input disabled={isEditMode} label={t('initialQty')} type="number" {...register('qte_on_hand')} error={errors.qte_on_hand?.message} required />
             <Input label={t('purchasePrice')} type="number" step="0.01" {...register('prix_achat')} error={errors.prix_achat?.message} required />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <Input label={t('retailPrice')} type="number" step="0.01" {...register('prix_vente_detail')} error={errors.prix_vente_detail?.message} required />
+                <Input label={t('semiWholesalePrice')} type="number" step="0.01" {...register('prix_vente_semi_gros')} error={errors.prix_vente_semi_gros?.message} required />
                 <Input label={t('wholesalePrice')} type="number" step="0.01" {...register('prix_vente_gros')} error={errors.prix_vente_gros?.message} required />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

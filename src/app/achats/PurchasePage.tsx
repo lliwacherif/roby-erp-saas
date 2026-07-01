@@ -1,9 +1,10 @@
-﻿import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useTenant } from '@/lib/tenant'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
+import { InvoicePrintStyles, InvoiceTemplate, formatInvoiceStatusLabel, type InvoiceColumn, type InvoiceRow, type InvoiceTotalRow } from '@/components/invoice/InvoiceTemplate'
 import { clsx } from 'clsx'
 import {
   BarChart3,
@@ -171,6 +172,7 @@ const fmt = (value: number) =>
   Number(value || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const today = () => new Date().toISOString().split('T')[0]
+const dateFmt = (value?: string | null) => value ? new Date(value).toLocaleDateString('fr-FR') : '-'
 
 const emptyOrderLine = (): OrderLineDraft => ({
   category_id: '',
@@ -179,6 +181,8 @@ const emptyOrderLine = (): OrderLineDraft => ({
   qty: 1,
   unit_price: 0,
 })
+
+const statusBadgeLabel = (status: string) => formatInvoiceStatusLabel(status)
 
 const statusBadge = (status: string) => {
   switch (status) {
@@ -241,6 +245,7 @@ export default function PurchasePage() {
   const [selectedReviewInvoice, setSelectedReviewInvoice] = useState<PurchaseInvoice | null>(null)
   const [profile, setProfile] = useState<CompanyProfile>(emptyProfile)
   const [profileSaving, setProfileSaving] = useState(false)
+  const [isCompanyProfileOpen, setIsCompanyProfileOpen] = useState(false)
   const [confirmState, setConfirmState] = useState<ConfirmState>(null)
   const [confirming, setConfirming] = useState(false)
 
@@ -563,6 +568,7 @@ export default function PurchasePage() {
         nom: articleName,
         prix_achat: line.unit_price,
         prix_vente_detail: 0,
+        prix_vente_semi_gros: 0,
         prix_vente_gros: 0,
         prix_location_min: 0,
         prix_location_max: 0,
@@ -839,6 +845,8 @@ export default function PurchasePage() {
     if (profileError) {
       setError(profileError.message)
       alert(profileError.message)
+    } else {
+      setIsCompanyProfileOpen(false)
     }
     setProfileSaving(false)
   }
@@ -1058,6 +1066,31 @@ export default function PurchasePage() {
     ? receipts.filter((receipt) => receipt.purchase_order_id === invoiceForm.purchase_order_id && receipt.status === 'validated')
     : receipts.filter((receipt) => receipt.status === 'validated')
 
+  const purchaseInvoiceColumns: InvoiceColumn[] = [
+    { key: 'article', header: 'Article' },
+    { key: 'ordered', header: 'Qte commandee', align: 'center' },
+    { key: 'received', header: 'Qte recue', align: 'center' },
+    { key: 'unit', header: 'Prix ' + priceMode, align: 'right' },
+    { key: 'total', header: 'Total', align: 'right' },
+  ]
+
+  const purchaseInvoiceRows: InvoiceRow[] = invoiceItems.map((item) => ({
+    id: item.id,
+    cells: [
+      <span className="font-semibold text-slate-900">{item.article_name}</span>,
+      item.qty_ordered,
+      item.qty_received,
+      fmt(item.unit_price) + ' DT',
+      <span className="font-bold text-slate-950">{fmt(item.qty_ordered * item.unit_price)} DT</span>,
+    ],
+  }))
+
+  const purchaseInvoiceTotals: InvoiceTotalRow[] = [
+    { label: 'Sous-total HT', value: fmt(invoiceTotalHt), emphasis: 'strong' },
+    { label: 'TVA 19%', value: fmt(invoiceTva) },
+    { label: 'Total TTC', value: fmt(invoiceTotalTtc), emphasis: 'grand' },
+  ]
+
   const tabs = [
     { key: 'dashboard' as const, label: 'Tableau de bord', icon: BarChart3 },
     { key: 'orders' as const, label: 'Bon de Commande', icon: PackagePlus },
@@ -1072,37 +1105,23 @@ export default function PurchasePage() {
 
   return (
     <div className="space-y-6">
-      <style>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          .print-area, .print-area * { visibility: visible !important; }
-          .print-area {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 210mm !important;
-            min-height: 297mm !important;
-            margin: 0 !important;
-            padding: 12mm !important;
-            border: none !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            background: white !important;
-          }
-          .print-hidden { display: none !important; }
-          @page { size: A4; margin: 0; }
-        }
-      `}</style>
+      <InvoicePrintStyles />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print-hidden">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Achats</h1>
           <p className="text-sm text-slate-500 mt-0.5">Cycle fournisseur: BC, BR, factures et avoirs</p>
         </div>
-        <Button variant="secondary" onClick={fetchAll} className="w-full sm:w-auto">
-          <RefreshCw className="h-4 w-4" />
-          Actualiser
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <Button variant="secondary" onClick={() => setIsCompanyProfileOpen(true)} className="w-full sm:w-auto">
+            <Building2 className="h-4 w-4" />
+            Details de l'entreprise
+          </Button>
+          <Button variant="secondary" onClick={fetchAll} className="w-full sm:w-auto">
+            <RefreshCw className="h-4 w-4" />
+            Actualiser
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -1110,6 +1129,51 @@ export default function PurchasePage() {
           {error}
         </div>
       )}
+      <Modal isOpen={isCompanyProfileOpen} onClose={() => setIsCompanyProfileOpen(false)} title="Details de l'entreprise">
+        <div className="space-y-4">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-slate-400" />
+              <p className="text-sm font-semibold text-slate-800">Informations imprimees sur les factures</p>
+            </div>
+          </div>
+          <Input
+            label="Nom de l'entreprise"
+            value={profile.company_name}
+            onChange={(event) => setProfile((value) => ({ ...value, company_name: event.target.value }))}
+          />
+          <Input
+            label="Adresse"
+            value={profile.company_address}
+            onChange={(event) => setProfile((value) => ({ ...value, company_address: event.target.value }))}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Telephone"
+              value={profile.company_phone}
+              onChange={(event) => setProfile((value) => ({ ...value, company_phone: event.target.value }))}
+            />
+            <Input
+              label="Email"
+              value={profile.company_email}
+              onChange={(event) => setProfile((value) => ({ ...value, company_email: event.target.value }))}
+            />
+          </div>
+          <Input
+            label="Matricule fiscal / RC"
+            value={profile.company_tax_id}
+            onChange={(event) => setProfile((value) => ({ ...value, company_tax_id: event.target.value }))}
+          />
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-slate-100">
+            <Button type="button" variant="secondary" onClick={() => setIsCompanyProfileOpen(false)} className="w-full sm:w-auto">
+              Annuler
+            </Button>
+            <Button type="button" onClick={saveCompanyProfile} disabled={profileSaving} className="w-full sm:w-auto">
+              {profileSaving ? 'Enregistrement...' : 'Enregistrer'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <div className="border-b border-slate-200 -mx-4 sm:mx-0 px-4 sm:px-0 print-hidden">
         <nav className="-mb-px flex space-x-6 overflow-x-auto hide-scrollbar" aria-label="Tabs">
@@ -1188,79 +1252,94 @@ export default function PurchasePage() {
                   const lineTotal = Number(line.qty || 0) * Number(line.unit_price || 0)
 
                   return (
-                    <div key={index} className="grid grid-cols-1 lg:grid-cols-12 gap-3 bg-slate-50 rounded-xl border border-slate-100 p-4">
-                      <div className="lg:col-span-2">
-                        <SelectField label="Categorie" value={line.category_id} onChange={(value) => handleCategoryChange(index, value)} required>
-                          <option value="">Categorie</option>
-                          {categories.map((item) => (
-                            <option key={item.id} value={item.id}>{item.name}</option>
-                          ))}
-                        </SelectField>
-                      </div>
-                      <div className="lg:col-span-2">
-                        <SelectField
-                          label="Famille"
-                          value={line.famille_id}
-                          onChange={(value) => updateOrderLine(index, { famille_id: value, article_name: '' })}
-                          disabled={!line.category_id}
-                          required
-                        >
-                          <option value="">Famille</option>
-                          {familyOptions.map((item) => (
-                            <option key={item.id} value={item.id}>{item.name}</option>
-                          ))}
-                        </SelectField>
-                      </div>
-                      <div className="lg:col-span-3">
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                          Article<span className="text-red-500 ml-1">*</span>
-                        </label>
-                        <input
-                          list={`purchase-articles-${index}`}
-                          value={line.article_name}
-                          onChange={(event) => updateOrderLine(index, { article_name: event.target.value })}
-                          disabled={!line.famille_id}
-                          className={selectClass}
-                          placeholder="Selectionner ou taper un nouvel article"
-                        />
-                        <datalist id={`purchase-articles-${index}`}>
-                          {filteredArticles.map((article) => (
-                            <option key={article.id} value={article.nom} />
-                          ))}
-                        </datalist>
-                      </div>
-                      <div className="lg:col-span-1">
-                        <Input
-                          label="Qte"
-                          type="number"
-                          min={1}
-                          value={line.qty}
-                          onChange={(event) => updateOrderLine(index, { qty: Number(event.target.value) })}
-                        />
-                      </div>
-                      <div className="lg:col-span-2">
-                        <Input
-                          label="Prix unitaire"
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          value={line.unit_price}
-                          onChange={(event) => updateOrderLine(index, { unit_price: Number(event.target.value) })}
-                        />
-                      </div>
-                      <div className="lg:col-span-1 self-end text-right">
-                        <p className="text-xs text-slate-400">Total</p>
-                        <p className="text-sm font-bold text-slate-800">{fmt(lineTotal)} DT</p>
-                      </div>
-                      <div className="lg:col-span-1 self-end flex justify-end">
+                    <div key={index} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+                      <div className="mb-3 flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">Ligne {index + 1}</p>
+                          <p className="mt-0.5 text-sm font-semibold text-slate-800">Article commande</p>
+                        </div>
                         <button
                           type="button"
                           onClick={() => setOrderLines((lines) => lines.filter((_, i) => i !== index))}
                           disabled={orderLines.length <= 1}
-                          className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:text-slate-300 disabled:hover:bg-transparent"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:text-slate-300 disabled:hover:bg-transparent"
+                          title="Supprimer la ligne"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.95fr)]">
+                        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+                          <SelectField label="Categorie" value={line.category_id} onChange={(value) => handleCategoryChange(index, value)} required>
+                            <option value="">Categorie</option>
+                            {categories.map((item) => (
+                              <option key={item.id} value={item.id}>{item.name}</option>
+                            ))}
+                          </SelectField>
+
+                          <SelectField
+                            label="Famille"
+                            value={line.famille_id}
+                            onChange={(value) => updateOrderLine(index, { famille_id: value, article_name: '' })}
+                            disabled={!line.category_id}
+                            required
+                          >
+                            <option value="">Famille</option>
+                            {familyOptions.map((item) => (
+                              <option key={item.id} value={item.id}>{item.name}</option>
+                            ))}
+                          </SelectField>
+
+                          <div className="min-w-0 sm:col-span-2">
+                            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                              Article<span className="ml-1 text-red-500">*</span>
+                            </label>
+                            <input
+                              list={`purchase-articles-${index}`}
+                              value={line.article_name}
+                              onChange={(event) => updateOrderLine(index, { article_name: event.target.value })}
+                              disabled={!line.famille_id}
+                              className={selectClass}
+                              placeholder="Selectionner ou taper un nouvel article"
+                            />
+                            <datalist id={`purchase-articles-${index}`}>
+                              {filteredArticles.map((article) => (
+                                <option key={article.id} value={article.nom} />
+                              ))}
+                            </datalist>
+                            <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 sm:hidden">
+                              <p className="text-xs font-medium text-slate-400">Total</p>
+                              <p className="mt-1 whitespace-nowrap text-right text-sm font-extrabold tabular-nums text-slate-900">{fmt(lineTotal)} DT</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[minmax(92px,0.65fr)_minmax(140px,1fr)_minmax(140px,0.9fr)]">
+                          <Input
+                            label="Qte"
+                            type="number"
+                            min={1}
+                            value={line.qty}
+                            onChange={(event) => updateOrderLine(index, { qty: Number(event.target.value) })}
+                            className="min-w-[92px] text-center font-semibold tabular-nums"
+                          />
+
+                          <Input
+                            label="Prix unitaire"
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={line.unit_price}
+                            onChange={(event) => updateOrderLine(index, { unit_price: Number(event.target.value) })}
+                            className="min-w-[140px] text-right tabular-nums"
+                          />
+
+                          <div className="hidden min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 sm:col-span-1 sm:block">
+                            <p className="text-xs font-medium text-slate-400">Total</p>
+                            <p className="mt-1 min-w-0 whitespace-nowrap text-right text-sm font-extrabold tabular-nums text-slate-900 sm:text-base">{fmt(lineTotal)} DT</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )
@@ -1299,7 +1378,7 @@ export default function PurchasePage() {
                   <option value="">Selectionner un BC</option>
                   {orders.filter((order) => !['recu', 'annule'].includes(order.status)).map((order) => (
                     <option key={order.id} value={order.id}>
-                      BC #{order.id.slice(0, 8)} - {order.supplier_name || 'Fournisseur'} - {order.status}
+                      BC #{order.id.slice(0, 8)} - {order.supplier_name || 'Fournisseur'} - {statusBadgeLabel(order.status)}
                     </option>
                   ))}
                 </SelectField>
@@ -1421,42 +1500,6 @@ export default function PurchasePage() {
                 </div>
               )}
 
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-slate-400" />
-                  <h3 className="text-sm font-semibold text-slate-800">Details de l'entreprise</h3>
-                </div>
-                <Input
-                  label="Nom de l'entreprise"
-                  value={profile.company_name}
-                  onChange={(event) => setProfile((value) => ({ ...value, company_name: event.target.value }))}
-                />
-                <Input
-                  label="Adresse"
-                  value={profile.company_address}
-                  onChange={(event) => setProfile((value) => ({ ...value, company_address: event.target.value }))}
-                />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Input
-                    label="Telephone"
-                    value={profile.company_phone}
-                    onChange={(event) => setProfile((value) => ({ ...value, company_phone: event.target.value }))}
-                  />
-                  <Input
-                    label="Email"
-                    value={profile.company_email}
-                    onChange={(event) => setProfile((value) => ({ ...value, company_email: event.target.value }))}
-                  />
-                </div>
-                <Input
-                  label="Matricule fiscal / RC"
-                  value={profile.company_tax_id}
-                  onChange={(event) => setProfile((value) => ({ ...value, company_tax_id: event.target.value }))}
-                />
-                <Button type="button" variant="secondary" onClick={saveCompanyProfile} disabled={profileSaving} className="w-full">
-                  {profileSaving ? 'Enregistrement...' : "Enregistrer les details de l'entreprise"}
-                </Button>
-              </div>
 
               <SelectField
                 label="Fournisseur"
@@ -1553,87 +1596,39 @@ export default function PurchasePage() {
               </div>
             </div>
 
-            <div className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl p-8 space-y-6 print-area">
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{selectedReviewInvoice?.kind === 'credit_note' ? 'AVOIR FOURNISSEUR' : "FACTURE D'ACHAT"}</h2>
-                <p className="text-sm text-slate-700">Date: {invoiceForm.invoice_date ? new Date(invoiceForm.invoice_date).toLocaleDateString('fr-FR') : '-'}</p>
-                <p className="text-sm text-slate-700">Facture: {invoiceForm.invoice_number || '-'}</p>
-              </div>
-
-              <div className="space-y-1 text-sm text-slate-800">
-                <p className="font-semibold">Entreprise</p>
-                <p>{profile.company_name || '-'}</p>
-                <p>{profile.company_address || '-'}</p>
-                <p>{profile.company_phone || '-'}</p>
-                <p>{profile.company_email || '-'}</p>
-                <p>{profile.company_tax_id || '-'}</p>
-              </div>
-
-              <div className="space-y-1 text-sm text-slate-800">
-                <p className="font-semibold">Fournisseur</p>
-                <p>{selectedSupplier?.nom || '-'}</p>
-                <p>{selectedSupplier?.telephone || '-'}</p>
-                <p>{selectedSupplier?.email || '-'}</p>
-                <p>{selectedSupplier?.adresse || '-'}</p>
-                <p>{selectedSupplier?.immatricule_fiscale || '-'}</p>
-              </div>
-
-              <div className="space-y-1 text-sm text-slate-800">
-                <p className="font-semibold">Rapprochement</p>
-                <p>BC: {selectedOrder ? `#${selectedOrder.id.slice(0, 8)} (${selectedOrder.status})` : '-'}</p>
-                <p>BR: {selectedReceipt ? `#${selectedReceipt.id.slice(0, 8)} du ${new Date(selectedReceipt.received_at).toLocaleDateString('fr-FR')}` : '-'}</p>
-                <p>Mode prix: {priceMode}</p>
-                <p>TVA: 19%</p>
-              </div>
-
-              <div className="border border-slate-300 rounded-xl overflow-x-auto">
-                <table className="w-full text-sm min-w-[600px]">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="text-left px-4 py-2 font-medium text-slate-500">Article</th>
-                      <th className="text-center px-4 py-2 font-medium text-slate-500">Qte commandee</th>
-                      <th className="text-center px-4 py-2 font-medium text-slate-500">Qte recue</th>
-                      <th className="text-right px-4 py-2 font-medium text-slate-500">Prix Unitaire {priceMode}</th>
-                      <th className="text-right px-4 py-2 font-medium text-slate-500">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {invoiceItems.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
-                          Selectionnez un BC pour afficher les lignes.
-                        </td>
-                      </tr>
-                    ) : invoiceItems.map((item) => (
-                      <tr key={item.id}>
-                        <td className="px-4 py-2.5">{item.article_name}</td>
-                        <td className="px-4 py-2.5 text-center">{item.qty_ordered}</td>
-                        <td className="px-4 py-2.5 text-center">{item.qty_received}</td>
-                        <td className="px-4 py-2.5 text-right">{fmt(item.unit_price)} DT</td>
-                        <td className="px-4 py-2.5 text-right font-semibold">{fmt(item.qty_ordered * item.unit_price)} DT</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot className="bg-slate-50">
-                    <tr>
-                      <td colSpan={4} className="px-4 py-2.5 text-right font-semibold text-slate-700">Sous-total HT</td>
-                      <td className="px-4 py-2.5 text-right font-semibold text-slate-900">{fmt(invoiceTotalHt)} DT</td>
-                    </tr>
-                    <tr>
-                      <td colSpan={4} className="px-4 py-2.5 text-right font-semibold text-slate-700">TVA</td>
-                      <td className="px-4 py-2.5 text-right font-semibold text-slate-900">{fmt(invoiceTva)} DT</td>
-                    </tr>
-                    <tr>
-                      <td colSpan={4} className="px-4 py-2.5 text-right font-bold text-slate-900">Total TTC</td>
-                      <td className="px-4 py-2.5 text-right font-bold text-slate-900">{fmt(invoiceTotalTtc)} DT</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-
-              <div className="pt-12">
-                <p className="text-sm text-slate-900">Cachet et Signature</p>
-              </div>
+            <div className="xl:col-span-2">
+              <InvoiceTemplate
+                title={selectedReviewInvoice?.kind === 'credit_note' ? 'Avoir fournisseur' : "Facture d'achat"}
+                subtitle={selectedSupplier?.nom ? 'Fournisseur: ' + selectedSupplier.nom : 'Facture fournisseur'}
+                documentNumber={invoiceForm.invoice_number || (selectedReviewInvoice ? '#' + selectedReviewInvoice.id.slice(0, 8) : '-')}
+                issueDate={dateFmt(invoiceForm.invoice_date)}
+                badge={selectedReviewInvoice?.kind === 'credit_note' ? 'Avoir' : (selectedReviewInvoice?.status || 'Brouillon')}
+                logoUrl={currentTenant?.logo_url}
+                company={{
+                  label: 'Entreprise',
+                  name: profile.company_name,
+                  lines: [profile.company_address, profile.company_phone, profile.company_email],
+                  taxId: profile.company_tax_id,
+                }}
+                counterparty={{
+                  label: 'Fournisseur',
+                  name: selectedSupplier?.nom,
+                  lines: [selectedSupplier?.telephone, selectedSupplier?.email, selectedSupplier?.adresse],
+                  taxId: selectedSupplier?.immatricule_fiscale,
+                }}
+                referenceTitle="Rapprochement"
+                referenceItems={[
+                  { label: 'BC', value: selectedOrder ? '#' + selectedOrder.id.slice(0, 8) + ' (' + formatInvoiceStatusLabel(selectedOrder.status) + ')' : '-' },
+                  { label: 'BR', value: selectedReceipt ? '#' + selectedReceipt.id.slice(0, 8) + ' du ' + dateFmt(selectedReceipt.received_at) : '-' },
+                  { label: 'Mode prix', value: priceMode },
+                  { label: 'TVA', value: '19%' },
+                ]}
+                columns={purchaseInvoiceColumns}
+                rows={purchaseInvoiceRows}
+                emptyMessage="Selectionnez un BC pour afficher les lignes."
+                totals={purchaseInvoiceTotals}
+                accent={selectedReviewInvoice?.kind === 'credit_note' ? 'rose' : 'amber'}
+              />
             </div>
           </div>
 
@@ -1848,7 +1843,7 @@ function CompactOrderTable({ orders, onDelete }: { orders: PurchaseOrder[]; onDe
               <td className="py-2 text-slate-700">{order.supplier_name || '-'}</td>
               <td className="py-2">
                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${statusBadge(order.status)}`}>
-                  {order.status}
+                  {statusBadgeLabel(order.status)}
                 </span>
               </td>
               <td className="py-2 text-right font-semibold">{fmt(order.total_ttc)} DT</td>
@@ -1889,7 +1884,7 @@ function CompactReceiptTable({ receipts, onDelete }: { receipts: Receipt[]; onDe
               <td className="py-2 text-slate-600">{new Date(receipt.received_at).toLocaleDateString('fr-FR')}</td>
               <td className="py-2">
                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${statusBadge(receipt.status)}`}>
-                  {receipt.status}
+                  {statusBadgeLabel(receipt.status)}
                 </span>
               </td>
               {onDelete && (
@@ -2010,7 +2005,7 @@ function CompactReturnTable({ returns, onDelete }: { returns: PurchaseReturn[]; 
               <td className="py-2 text-slate-600">{new Date(item.returned_at).toLocaleDateString('fr-FR')}</td>
               <td className="py-2">
                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${statusBadge(item.status)}`}>
-                  {item.status}
+                  {statusBadgeLabel(item.status)}
                 </span>
               </td>
               {onDelete && (

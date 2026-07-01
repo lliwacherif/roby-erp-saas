@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useTenant } from '@/lib/tenant'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { InvoicePrintStyles, InvoiceTemplate, formatInvoiceStatusLabel, type InvoiceColumn, type InvoiceRow, type InvoiceTotalRow } from '@/components/invoice/InvoiceTemplate'
 import { ArrowLeft, Printer } from 'lucide-react'
 
 type ServiceItem = {
@@ -56,6 +57,7 @@ const fmt = (n: number) =>
   n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const TVA_RATE = 0.19
+const dateFmt = (value?: string | null) => value ? new Date(value).toLocaleDateString('fr-FR') : '-'
 
 export default function ServiceInvoiceBuilder({ mode = 'location' }: { mode?: 'location' | 'vente' }) {
   const navigate = useNavigate()
@@ -185,38 +187,68 @@ export default function ServiceInvoiceBuilder({ mode = 'location' }: { mode?: 'l
   if (loading) return <div className="p-8 text-center text-slate-500">Loading...</div>
   if (!service) return <div className="p-8 text-center text-red-500">{error || 'Service not found'}</div>
 
+  const invoiceColumns: InvoiceColumn[] = service.type === 'location'
+    ? [
+      { key: 'article', header: 'Article' },
+      { key: 'qty', header: 'Qte', align: 'center' },
+      { key: 'deposit', header: 'Caution', align: 'right' },
+      { key: 'from', header: 'Du', align: 'center' },
+      { key: 'to', header: 'Au', align: 'center' },
+      { key: 'unit', header: 'Prix ' + priceMode, align: 'right' },
+      { key: 'total', header: 'Total', align: 'right' },
+    ]
+    : [
+      { key: 'article', header: 'Article' },
+      { key: 'qty', header: 'Qte', align: 'center' },
+      { key: 'unit', header: 'Prix ' + priceMode, align: 'right' },
+      { key: 'total', header: 'Total', align: 'right' },
+    ]
+
+  const invoiceRows: InvoiceRow[] = items.map((item) => ({
+    id: item.id,
+    cells: service.type === 'location'
+      ? [
+        <div>
+          <span className="font-semibold text-slate-900">{item.article_name}</span>
+          {item.unit_price === 0 && (
+            <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700">
+              Cadeau
+            </span>
+          )}
+        </div>,
+        item.qty,
+        fmt(Number(item.rental_deposit) || 0) + ' DT',
+        dateFmt(item.rental_start),
+        dateFmt(item.rental_end),
+        fmt(displayUnitPrice(item.unit_price)) + ' DT',
+        <span className="font-bold text-slate-950">{fmt(displayLineTotal(item.qty, item.unit_price))} DT</span>,
+      ]
+      : [
+        item.article_name || '-',
+        String(item.qty || 0),
+        fmt(displayUnitPrice(item.unit_price)) + ' DT',
+        fmt(displayLineTotal(item.qty, item.unit_price)) + ' DT',
+      ],
+  }))
+
+  const invoiceTotals: InvoiceTotalRow[] = []
+  if (discountAmount > 0) invoiceTotals.push({ label: 'Remise', value: '- ' + fmt(discountAmount), tone: 'danger' })
+  invoiceTotals.push(
+    { label: 'Sous-total HT', value: fmt(subtotalHT), emphasis: 'strong' },
+    { label: 'TVA 19%', value: fmt(tvaAmount) },
+    { label: 'Total TTC', value: fmt(subtotalTTC), emphasis: 'grand' }
+  )
+  if (service.type === 'location') {
+    const deposit = totalDeposit > 0 ? totalDeposit : (service.rental_deposit || 0)
+    invoiceTotals.push(
+      { label: 'Avance / caution', value: fmt(deposit), emphasis: 'strong' },
+      { label: 'Reste a payer', value: fmt(Math.max(0, subtotalTTC - deposit)), tone: 'danger', emphasis: 'strong' }
+    )
+  }
+
   return (
     <div className="space-y-6">
-      <style>{`
-        @media print {
-          body * {
-            visibility: hidden !important;
-          }
-          .print-area, .print-area * {
-            visibility: visible !important;
-          }
-          .print-area {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 210mm !important;
-            min-height: 297mm !important;
-            margin: 0 !important;
-            padding: 12mm !important;
-            border: none !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            background: white !important;
-          }
-          .print-hidden {
-            display: none !important;
-          }
-          @page {
-            size: A4;
-            margin: 0;
-          }
-        }
-      `}</style>
+      <InvoicePrintStyles />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4 print-hidden w-full sm:w-auto">
@@ -298,126 +330,39 @@ export default function ServiceInvoiceBuilder({ mode = 'location' }: { mode?: 'l
           </Button>
         </div>
 
-        <div className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl p-8 space-y-6 print-area">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">FACTURE</h2>
-            <p className="text-sm text-slate-700">Date: {new Date(service.created_at).toLocaleDateString('fr-FR')}</p>
-            <p className="text-sm text-slate-700">ID Service: {service.id.slice(0, 8)}</p>
-          </div>
-
-          <div className="space-y-1 text-sm text-slate-800">
-            <p>{profile.company_name || '-'}</p>
-            <p>{profile.company_address || '-'}</p>
-            <p>{profile.company_phone || '-'}</p>
-            <p>{profile.company_email || '-'}</p>
-            <p>{profile.company_tax_id || '-'}</p>
-          </div>
-
-          <div className="space-y-1 text-sm text-slate-800">
-            <p className="font-semibold">Facture a</p>
-            <p>{client?.full_name || '-'}</p>
-            <p>{client?.phone || '-'}</p>
-            <p>{client?.email || '-'}</p>
-            <p>{client?.address || '-'}</p>
-          </div>
-
-          <div className="space-y-1 text-sm text-slate-800">
-            <p className="font-semibold">Infos Service</p>
-            <p>Type: {service.type.toUpperCase()}</p>
-            <p>Statut: {service.status.toUpperCase()}</p>
-            <p>Du: {service.rental_start ? new Date(service.rental_start).toLocaleDateString('fr-FR') : '-'}</p>
-            <p>Au: {service.rental_end ? new Date(service.rental_end).toLocaleDateString('fr-FR') : '-'}</p>
-            {service.type === 'location' && <p>Caution: {fmt(totalDeposit > 0 ? totalDeposit : (service.rental_deposit || 0))} DT</p>}
-            {discountAmount > 0 && <p>Remise: -{fmt(discountAmount)} DT</p>}
-            <p>Mode prix: {priceMode}</p>
-            <p>TVA: 19%</p>
-          </div>
-
-          <div className="border border-slate-300 rounded-xl overflow-x-auto">
-            <table className="w-full text-sm min-w-[600px]">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="text-left px-4 py-2 font-medium text-slate-500">Article</th>
-                  <th className="text-center px-4 py-2 font-medium text-slate-500">Qte</th>
-                  {service.type === 'location' && (
-                    <>
-                      <th className="text-right px-4 py-2 font-medium text-slate-500">Caution</th>
-                      <th className="text-center px-4 py-2 font-medium text-slate-500">Du</th>
-                      <th className="text-center px-4 py-2 font-medium text-slate-500">Au</th>
-                    </>
-                  )}
-                  <th className="text-right px-4 py-2 font-medium text-slate-500">
-                    Prix Unitaire {priceMode}
-                  </th>
-                  <th className="text-right px-4 py-2 font-medium text-slate-500">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-2.5">
-                      {item.article_name}
-                      {service.type === 'location' && item.unit_price === 0 && (
-                        <span className="ml-2 inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                          CADEAU
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-center">{item.qty}</td>
-                    {service.type === 'location' && (
-                      <>
-                        <td className="px-4 py-2.5 text-right">{fmt(Number(item.rental_deposit) || 0)} DT</td>
-                        <td className="px-4 py-2.5 text-center">
-                          {item.rental_start ? new Date(item.rental_start).toLocaleDateString('fr-FR') : '-'}
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          {item.rental_end ? new Date(item.rental_end).toLocaleDateString('fr-FR') : '-'}
-                        </td>
-                      </>
-                    )}
-                    <td className="px-4 py-2.5 text-right">{fmt(displayUnitPrice(item.unit_price))} DT</td>
-                    <td className="px-4 py-2.5 text-right font-semibold">{fmt(displayLineTotal(item.qty, item.unit_price))} DT</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-slate-50">
-                {discountAmount > 0 && (
-                  <tr>
-                    <td colSpan={service.type === 'location' ? 6 : 3} className="px-4 py-2.5 text-right font-semibold text-slate-700">Remise</td>
-                    <td className="px-4 py-2.5 text-right font-semibold text-red-600">- {fmt(discountAmount)} DT</td>
-                  </tr>
-                )}
-                <tr>
-                  <td colSpan={service.type === 'location' ? 6 : 3} className="px-4 py-2.5 text-right font-semibold text-slate-700">Sous-total HT</td>
-                  <td className="px-4 py-2.5 text-right font-semibold text-slate-900">{fmt(subtotalHT)} DT</td>
-                </tr>
-                <tr>
-                  <td colSpan={service.type === 'location' ? 6 : 3} className="px-4 py-2.5 text-right font-bold text-slate-900">Total TTC</td>
-                  <td className="px-4 py-2.5 text-right font-bold text-slate-900">{fmt(subtotalTTC)} DT</td>
-                </tr>
-                {service.type === 'location' && (
-                  <>
-                    <tr>
-                      <td colSpan={6} className="px-4 py-2.5 text-right font-semibold text-slate-700">Avance (Caution)</td>
-                      <td className="px-4 py-2.5 text-right font-semibold text-slate-900">
-                        {fmt(totalDeposit > 0 ? totalDeposit : (service.rental_deposit || 0))} DT
-                      </td>
-                    </tr>
-                    <tr>
-                      <td colSpan={6} className="px-4 py-2.5 text-right font-bold text-slate-900 border-t-2 border-slate-200">Reste à payer</td>
-                      <td className="px-4 py-2.5 text-right font-bold text-red-600 border-t-2 border-slate-200">
-                        {fmt(Math.max(0, subtotalTTC - (totalDeposit > 0 ? totalDeposit : (service.rental_deposit || 0))))} DT
-                      </td>
-                    </tr>
-                  </>
-                )}
-              </tfoot>
-            </table>
-          </div>
-
-          <div className="pt-12">
-            <p className="text-sm text-slate-900">Cachet et Signature</p>
-          </div>
+        <div className="xl:col-span-2">
+          <InvoiceTemplate
+            title={service.type === 'vente' ? 'Facture de vente' : 'Facture de location'}
+            subtitle={'Service #' + service.id.slice(0, 8)}
+            documentNumber={'#' + service.id.slice(0, 8)}
+            issueDate={dateFmt(service.created_at)}
+            badge={service.status}
+            logoUrl={currentTenant?.logo_url}
+            company={{
+              label: 'Entreprise',
+              name: profile.company_name,
+              lines: [profile.company_address, profile.company_phone, profile.company_email],
+              taxId: profile.company_tax_id,
+            }}
+            counterparty={{
+              label: 'Facture à',
+              name: client?.full_name,
+              lines: [client?.phone, client?.email, client?.cin ? 'CIN: ' + client.cin : null, client?.address],
+            }}
+            referenceTitle="Infos service"
+            referenceItems={[
+              { label: 'Type', value: service.type.toUpperCase() },
+              { label: 'Statut', value: formatInvoiceStatusLabel(service.status) },
+              { label: 'Du', value: dateFmt(service.rental_start) },
+              { label: 'Au', value: dateFmt(service.rental_end) },
+              { label: 'Mode prix', value: priceMode },
+              { label: 'TVA', value: '19%' },
+            ]}
+            columns={invoiceColumns}
+            rows={invoiceRows}
+            totals={invoiceTotals}
+            accent={service.type === 'vente' ? 'emerald' : 'blue'}
+          />
         </div>
       </div>
     </div>
